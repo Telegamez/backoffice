@@ -136,11 +136,38 @@ const ClientHome: React.FC<{ segments: ServerSegment[] }> = ({ segments }) => {
   const [selected, setSelected] = React.useState<Segment | null>(null);
   const list = React.useMemo(() => segments.map(toClient), [segments]);
 
+  const [syncing, setSyncing] = React.useState(false);
+
+  const syncGithub = async () => {
+    try {
+      setSyncing(true);
+      // 1) Sync issues/PRs
+      await fetch('/api/github-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ perPage: 100, maxPages: 20 }),
+      });
+      // 2) Remap into weekly segments (rest of the year)
+      await fetch('/api/map-timeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+      // 3) Reload page data
+      window.location.reload();
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <div className="min-h-screen p-6">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold">Telegamez Development Timeline</h1>
-        <p className="text-muted-foreground">Zoom from week to year and stream AI insights.</p>
+      <header className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Telegamez Development Timeline</h1>
+          <p className="text-muted-foreground">Zoom from week to year and stream AI insights.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button onClick={syncGithub} disabled={syncing}>
+            {syncing ? 'Syncing…' : 'Sync GitHub'}
+          </Button>
+        </div>
       </header>
 
       <Timeline segments={list} onSelect={setSelected} />

@@ -218,6 +218,10 @@ export const Timeline: React.FC<TimelineProps> = ({ segments, onSelect }) => {
     <div className="rounded-xl border bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-semibold">Development Timeline</h2>
+        <KeywordSearch segments={withLane.map(s=>s.id)} onSelectId={(id)=>{
+          const seg = segments.find((s)=>s.id===id);
+          if (seg) onSelect(seg);
+        }} />
       </div>
 
       <div ref={containerRef} className="relative h-[112px] overflow-x-auto rounded-lg border bg-background">
@@ -352,6 +356,46 @@ export const Timeline: React.FC<TimelineProps> = ({ segments, onSelect }) => {
           </div>
         ))}
       </div>
+    </div>
+  );
+};
+
+const KeywordSearch: React.FC<{ segments: string[]; onSelectId: (id: string) => void }> = ({ onSelectId }) => {
+  const [q, setQ] = React.useState('');
+  const [hits, setHits] = React.useState<string[]>([]);
+  const [open, setOpen] = React.useState(false);
+
+  const run = React.useCallback(async () => {
+    if (!q.trim()) { setHits([]); setOpen(false); return; }
+    const r = await fetch(`/api/segments/search?q=${encodeURIComponent(q)}`);
+    const j = (await r.json()) as { ids: string[] };
+    setHits(j.ids ?? []);
+    setOpen(true);
+  }, [q]);
+
+  return (
+    <div className="relative">
+      <input
+        value={q}
+        onChange={(e)=>setQ(e.target.value)}
+        onKeyDown={(e)=>{ if (e.key==='Enter') run(); }}
+        placeholder="Search weeks…"
+        className="w-56 rounded border bg-background px-2 py-1 text-xs"
+      />
+      {open && hits.length>0 && (
+        <div className="absolute right-0 z-20 mt-1 max-h-60 w-72 overflow-auto rounded-md border bg-card p-2 text-xs shadow">
+          <div className="mb-1 text-muted-foreground">Matches</div>
+          <ul className="space-y-1">
+            {hits.map((id) => (
+              <li key={id}>
+                <button className="w-full rounded px-2 py-1 text-left hover:bg-accent" onClick={()=>{ setOpen(false); onSelectId(id); }}>
+                  {id}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };
