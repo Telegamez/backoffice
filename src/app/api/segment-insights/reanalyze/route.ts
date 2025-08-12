@@ -35,7 +35,7 @@ export const POST = async (req: Request) => {
       model: openai(modelName),
       temperature: 0.2,
       system:
-        'You are a concise product analytics assistant. If previous insights are provided, refine and augment them; otherwise produce fresh insights. Respond with high-signal bullet points under headings: Velocity, Distribution, Risks. Keep it compact.',
+        'You are a concise product analytics assistant. If previous insights are provided, refine and augment them; otherwise produce fresh insights. Respond with high-signal bullet points grouped under headings: Velocity, Distribution, Risks, Customer Impact. Under Customer Impact, map the work to end-customer personas when relevant: Gamer, Sports fan, Trainer, Educator, Creator, Podcaster. For each applicable persona, write ONE user-story style bullet using the template: "As a [persona], when [situation/problem], [the shipped capability] enables [action] so that [outcome] (grade: A/B/C)". Only include personas that plausibly benefit. Keep output compact and avoid marketing fluff.',
       prompt: `Segment: ${JSON.stringify(body.segment)}\nPrevious: ${body.previous ?? ''}`,
     });
 

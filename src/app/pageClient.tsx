@@ -3,6 +3,7 @@ import * as React from 'react';
 import { Timeline } from '@/components/timeline/Timeline';
 import { DetailPanel } from '@/components/timeline/DetailPanel';
 import { Button } from '@/components/ui/button';
+import { Popover } from '@/components/ui/popover';
 
 type Segment = React.ComponentProps<typeof Timeline>['segments'][number];
 
@@ -40,6 +41,9 @@ const toClient = (row: ServerSegment): Segment => ({
 const AIInsights: React.FC<{ selected: Segment | null }> = ({ selected }) => {
   const [text, setText] = React.useState('Select a segment to analyze.');
   const [loading, setLoading] = React.useState(false);
+  const [prompt, setPrompt] = React.useState('');
+  const [infOpen, setInfOpen] = React.useState(false);
+  const anchorRef = React.useRef<HTMLDivElement | null>(null);
 
   const loadCached = React.useCallback(async (slug: string) => {
     const r = await fetch(`/api/segment-insights?slug=${encodeURIComponent(slug)}`);
@@ -78,6 +82,28 @@ const AIInsights: React.FC<{ selected: Segment | null }> = ({ selected }) => {
     }
   };
 
+  const runInference = async () => {
+    if (!selected || !prompt.trim()) return;
+    setLoading(true);
+    try {
+      const r = await fetch('/api/segment-insights/infer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ segment: selected, prompt }),
+      });
+      const j = (await r.json()) as { content?: string; error?: string };
+      if (j.content) {
+        setText(j.content);
+        setInfOpen(true);
+      } else if (j.error) {
+        setText(`Error: ${j.error}`);
+        setInfOpen(true);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-2">
       <div>
@@ -85,6 +111,22 @@ const AIInsights: React.FC<{ selected: Segment | null }> = ({ selected }) => {
           {loading ? 'Analyzing…' : 'Re-analyze'}
         </Button>
       </div>
+      <div ref={anchorRef} className="flex gap-2">
+        <input
+          type="text"
+          placeholder="Ask about this week's deliverables (not saved)"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') runInference();
+          }}
+          className="w-full rounded border bg-background px-2 py-1 text-sm"
+        />
+        <Button size="sm" onClick={runInference} disabled={!selected || loading || !prompt.trim()}>Ask</Button>
+      </div>
+      <Popover open={infOpen} onOpenChange={setInfOpen} anchorRef={anchorRef}>
+        <div className="max-w-[520px] whitespace-pre-wrap">{text}</div>
+      </Popover>
       <pre className="whitespace-pre-wrap text-sm text-foreground/90">{text}</pre>
     </div>
   );
