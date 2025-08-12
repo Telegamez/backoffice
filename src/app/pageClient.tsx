@@ -160,8 +160,7 @@ const ClientHome: React.FC<{ segments: ServerSegment[] }> = ({ segments }) => {
     <div className="min-h-screen p-6">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Telegamez Development Timeline</h1>
-          <p className="text-muted-foreground">Zoom from week to year and stream AI insights.</p>
+          <h1 className="text-2xl font-bold">Telegamez Development Explorer</h1>
         </div>
         <div className="flex items-center gap-3">
           <Button onClick={syncGithub} disabled={syncing}>

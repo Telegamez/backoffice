@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-export const Popover: React.FC<{ open: boolean; onOpenChange: (v: boolean) => void; anchorRef: React.RefObject<HTMLElement>; children: React.ReactNode }>
+export const Popover: React.FC<{ open: boolean; onOpenChange: (v: boolean) => void; anchorRef: React.RefObject<HTMLElement | null>; children: React.ReactNode }>
   = ({ open, onOpenChange, anchorRef, children }) => {
   return open ? (
     <div className="fixed inset-0 z-50" onClick={() => onOpenChange(false)}>

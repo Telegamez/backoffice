@@ -1,7 +1,7 @@
 "use client";
 import * as React from 'react';
 import { ZoomLevel, getPixelsPerDay } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+// Button is not used here
 
 type Segment = {
   id: string;
@@ -26,7 +26,7 @@ export type TimelineProps = {
 export const Timeline: React.FC<TimelineProps> = ({ segments, onSelect }) => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [zoom] = React.useState<ZoomLevel>('months');
-  const [mode] = React.useState<'time' | 'compact'>('compact');
+  // compact-only view
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
@@ -152,10 +152,10 @@ export const Timeline: React.FC<TimelineProps> = ({ segments, onSelect }) => {
       const diffToMonday = (day + 6) % 7;
       start.setDate(start.getDate() - diffToMonday);
       start.setHours(0, 0, 0, 0);
-      let cursor = new Date(start);
-      while (cursor < it.end) {
-        const a = Math.max(cursor.getTime(), it.start.getTime());
-        const b = Math.min(new Date(cursor.getTime() + 7 * 86400000).getTime(), it.end.getTime());
+      let cursorTmp = new Date(start);
+      while (cursorTmp < it.end) {
+        const a = Math.max(cursorTmp.getTime(), it.start.getTime());
+        const b = Math.min(new Date(cursorTmp.getTime() + 7 * 86400000).getTime(), it.end.getTime());
         const fracA = (a - it.start.getTime()) / (it.end.getTime() - it.start.getTime());
         const fracB = (b - it.start.getTime()) / (it.end.getTime() - it.start.getTime());
         const left = it.left + it.width * fracA;
@@ -173,7 +173,7 @@ export const Timeline: React.FC<TimelineProps> = ({ segments, onSelect }) => {
           );
         })();
         ticks.push({ left, width, label: `W${weekNumber}` });
-        cursor = new Date(cursor.getTime() + 7 * 86400000);
+        cursorTmp = new Date(cursorTmp.getTime() + 7 * 86400000);
       }
     }
     return ticks;
@@ -183,13 +183,13 @@ export const Timeline: React.FC<TimelineProps> = ({ segments, onSelect }) => {
     const ticks: Array<{ left: number; label: string }> = [];
     for (const it of compactIntervals) {
       const start = new Date(it.start.getFullYear(), it.start.getMonth(), 1);
-      let cursor = new Date(start);
-      while (cursor <= it.end) {
-        const clamped = Math.max(cursor.getTime(), it.start.getTime());
+      const cursorTmp = new Date(start);
+      while (cursorTmp <= it.end) {
+        const clamped = Math.max(cursorTmp.getTime(), it.start.getTime());
         const frac = (clamped - it.start.getTime()) / (it.end.getTime() - it.start.getTime());
         const left = it.left + it.width * frac;
-        ticks.push({ left, label: cursor.toLocaleString(undefined, { month: 'short' }) });
-        cursor.setMonth(cursor.getMonth() + 1);
+        ticks.push({ left, label: cursorTmp.toLocaleString(undefined, { month: 'short' }) });
+        cursorTmp.setMonth(cursorTmp.getMonth() + 1);
       }
     }
     return ticks;
@@ -199,14 +199,14 @@ export const Timeline: React.FC<TimelineProps> = ({ segments, onSelect }) => {
     const ticks: Array<{ left: number; label: string }> = [];
     for (const it of compactIntervals) {
       const startMonth = Math.floor(it.start.getMonth() / 3) * 3;
-      let cursor = new Date(it.start.getFullYear(), startMonth, 1);
-      while (cursor <= it.end) {
-        const clamped = Math.max(cursor.getTime(), it.start.getTime());
+      const cursorTmp = new Date(it.start.getFullYear(), startMonth, 1);
+      while (cursorTmp <= it.end) {
+        const clamped = Math.max(cursorTmp.getTime(), it.start.getTime());
         const frac = (clamped - it.start.getTime()) / (it.end.getTime() - it.start.getTime());
         const left = it.left + it.width * frac;
-        const q = Math.floor(cursor.getMonth() / 3) + 1;
-        ticks.push({ left, label: `Q${q} ${cursor.getFullYear()}` });
-        cursor.setMonth(cursor.getMonth() + 3);
+        const q = Math.floor(cursorTmp.getMonth() / 3) + 1;
+        ticks.push({ left, label: `Q${q} ${cursorTmp.getFullYear()}` });
+        cursorTmp.setMonth(cursorTmp.getMonth() + 3);
       }
     }
     return ticks;
@@ -303,7 +303,6 @@ export const Timeline: React.FC<TimelineProps> = ({ segments, onSelect }) => {
           {withLane.map((s) => {
             const sStart = new Date(s.startDate);
             const sEnd = new Date(s.endDate);
-            const startOffset = (sStart.getTime() - dataStart.getTime()) / 86400000;
             const duration = (sEnd.getTime() - sStart.getTime()) / 86400000;
             const left = compactPositions.get(s.id) ?? 0;
             const width = Math.max(duration * pxPerDay, 120);

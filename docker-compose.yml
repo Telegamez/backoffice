@@ -1,7 +1,9 @@
+version: "3.9"
+
 services:
   db:
-    image: postgres:16
-    container_name: tg-postgres
+    image: postgres:16-alpine
+    container_name: telegamez_db
     restart: unless-stopped
     environment:
       POSTGRES_DB: telegamez
@@ -15,7 +17,23 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 20
+
+  web:
+    build: .
+    container_name: telegamez_web
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env.local
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/telegamez
+      PORT: 3100
+      NODE_ENV: production
+    ports:
+      - "127.0.0.1:3100:3100"
+    restart: unless-stopped
 
 volumes:
   pgdata:
