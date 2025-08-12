@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1754944985831,
+      "tag": "0000_familiar_richard_fisk",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1754954304952,
+      "tag": "0001_hot_stardust",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1754956749969,
+      "tag": "0002_natural_newton_destine",
+      "breakpoints": true
+    }
+  ]
+}
