@@ -1,9 +1,16 @@
-import ClientHome, { type ServerSegment } from './pageClient';
-import { fetchSegments } from '@/lib/segments';
+import { redirect } from 'next/navigation';
+import { auth } from '@/lib/auth';
+import ApplicationSelector from '@/components/ApplicationSelector';
+
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const rows = await fetchSegments();
-  return <ClientHome segments={rows as unknown as ServerSegment[]} />;
+  const session = await auth();
+  
+  if (!session?.user) {
+    redirect('/api/auth/signin');
+  }
+
+  return <ApplicationSelector userEmail={session.user.email || undefined} />;
 }
 
