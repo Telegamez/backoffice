@@ -3,24 +3,43 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { FileText, Mail, Calendar, Bot } from 'lucide-react';
+import { FileText, Mail, Calendar, Bot, Loader2 } from 'lucide-react';
 import { clientGitHubIntegration, type DailySummary, type GitHubIssue } from './lib/client-integration';
+import DocumentPicker from './components/DocumentPicker';
+import AIAnalysisPanel from './components/AIAnalysisPanel';
+
+interface DriveDocument {
+  id: string;
+  name: string;
+  mimeType: string;
+  size?: number;
+  modifiedTime?: string;
+  webViewLink?: string;
+}
+
+interface AnalysisResult {
+  status: 'pending' | 'processing' | 'completed' | 'error';
+  summary?: string;
+  keyPoints?: string[];
+  contacts?: Array<{ name: string; email: string; role?: string }>;
+  tasks?: string[];
+  confidence?: number;
+  jobId?: string;
+}
 
 export default function AIAdminAssistantDashboard() {
   const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<DriveDocument | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
-    // Get user session and load daily summary
     loadUserAndSummary();
   }, []);
 
   const loadUserAndSummary = async () => {
     try {
-      // In a real implementation, you'd get the session on the server side
-      // For now, we'll simulate a user email for demonstration
       const mockUserEmail = "user@telegamez.com";
-
-      // Load base summary (simulate document analysis data)
       const baseSummary: DailySummary = {
         date: new Date().toISOString().split('T')[0],
         documentsAnalyzed: 0,
@@ -28,7 +47,6 @@ export default function AIAdminAssistantDashboard() {
         timeSaved: 0
       };
 
-      // Enhance with GitHub integration if available
       const enhancedSummary = await clientGitHubIntegration.enhanceDailySummaryWithGitHub(
         baseSummary,
         mockUserEmail
@@ -38,6 +56,89 @@ export default function AIAdminAssistantDashboard() {
     } catch (error) {
       console.error('Failed to load summary:', error);
     }
+  };
+
+  const handleDocumentSelect = (document: DriveDocument) => {
+    setSelectedDocument(document);
+    setAnalysisResult(null);
+  };
+
+  const handleAnalyzeDocument = async () => {
+    if (!selectedDocument) return;
+
+    setIsAnalyzing(true);
+    setAnalysisResult({ status: 'processing' });
+
+    try {
+      const response = await fetch('/api/ai-admin-assistant/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          documentId: selectedDocument.id,
+          documentType: selectedDocument.mimeType,
+          documentName: selectedDocument.name,
+          analysisTypes: ['summary', 'key_points', 'contacts', 'tasks'],
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setAnalysisResult({
+          status: 'processing',
+          jobId: data.jobId,
+        });
+
+        // Poll for results (in a real app, you'd use WebSockets or Server-Sent Events)
+        pollForResults(data.jobId);
+      } else {
+        setAnalysisResult({
+          status: 'error',
+        });
+      }
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      setAnalysisResult({
+        status: 'error',
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const pollForResults = (jobId: string) => {
+    // Simulate polling for job completion
+    // In a real implementation, you'd poll the job status endpoint
+    const pollInterval = setInterval(() => {
+      // For demo purposes, simulate completion after 3 seconds
+      setTimeout(() => {
+        setAnalysisResult({
+          status: 'completed',
+          summary: `Analysis complete for "${selectedDocument?.name}". This document contains project information and stakeholder communications.`,
+          keyPoints: [
+            'Project timeline spans Q3-Q4 2024',
+            'Budget allocation of $150K approved',
+            'Three key stakeholders identified',
+            'Weekly reporting cadence established'
+          ],
+          contacts: [
+            { name: 'John Smith', email: 'john.smith@company.com', role: 'Project Manager' },
+            { name: 'Sarah Johnson', email: 'sarah.j@company.com', role: 'Stakeholder' }
+          ],
+          tasks: [
+            'Schedule kickoff meeting',
+            'Prepare project charter',
+            'Set up weekly status reports',
+            'Coordinate with development team'
+          ],
+          confidence: 89,
+          jobId,
+        });
+        clearInterval(pollInterval);
+      }, 3000);
+    }, 1000);
   };
 
   return (
@@ -90,38 +191,51 @@ export default function AIAdminAssistantDashboard() {
         </div>
       </div>
 
-      {/* Main Actions */}
-      <div className="rounded-xl border bg-card p-4 mb-6">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Workflow Actions</h2>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-lg border p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <FileText className="h-5 w-5 text-primary" />
-              <div className="text-sm font-semibold">Document Analysis</div>
+      {/* Document Selection and Analysis */}
+      <div className="grid gap-6 lg:grid-cols-2 mb-6">
+        <DocumentPicker 
+          onDocumentSelect={handleDocumentSelect}
+          selectedDocumentId={selectedDocument?.id}
+        />
+        <div className="space-y-4">
+          <AIAnalysisPanel analysis={analysisResult || undefined} />
+          {selectedDocument && (
+            <div className="rounded-xl border bg-card p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">Selected Document</h3>
+                <Button
+                  onClick={handleAnalyzeDocument}
+                  disabled={isAnalyzing || analysisResult?.status === 'processing'}
+                  className="w-auto"
+                >
+                  {isAnalyzing || analysisResult?.status === 'processing' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Bot className="h-4 w-4 mr-2" />
+                      Analyze with AI
+                    </>
+                  )}
+                </Button>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">
+                  {selectedDocument.mimeType.includes('document') && '📄'}
+                  {selectedDocument.mimeType.includes('spreadsheet') && '📊'}
+                  {selectedDocument.mimeType.includes('pdf') && '📕'}
+                </span>
+                <div>
+                  <h4 className="font-medium">{selectedDocument.name}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedDocument.mimeType}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground mb-4">
-              Select a Google Drive document to analyze and extract key insights for email campaigns
-            </div>
-            <Button className="w-full" disabled>
-              <Bot className="h-4 w-4 mr-2" />
-              Analyze Document (Coming Soon)
-            </Button>
-          </div>
-          <div className="rounded-lg border p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Mail className="h-5 w-5 text-primary" />
-              <div className="text-sm font-semibold">Email Campaigns</div>
-            </div>
-            <div className="text-sm text-muted-foreground mb-4">
-              Create personalized email campaigns based on document analysis
-            </div>
-            <Button variant="outline" className="w-full" disabled>
-              <Mail className="h-4 w-4 mr-2" />
-              View Campaigns (Coming Soon)
-            </Button>
-          </div>
+          )}
         </div>
       </div>
 

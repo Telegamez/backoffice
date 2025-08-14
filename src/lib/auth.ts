@@ -27,10 +27,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     })
     // GitHub will be handled through a separate OAuth flow for secondary integration
   ],
+  debug: process.env.NODE_ENV === 'development',
   session: {
     strategy: "jwt",
   },
+  events: {
+    signOut: async (message) => {
+      // Future enhancement: revoke tokens on signout
+      if ('token' in message && message.token?.email) {
+        console.log(`User ${message.token.email} signed out - token revocation not yet implemented`);
+      }
+    }
+  },
+  pages: {
+    signIn: '/api/auth/signin',
+    error: '/api/auth/error',
+  },
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      // Allows relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      // Allows callback URLs on the same origin
+      else if (new URL(url).origin === baseUrl) return url
+      return baseUrl
+    },
     async signIn({ account, profile }) {
       try {
         if (account?.provider === "google") {
@@ -92,14 +112,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     }
   },
-  events: {
-    signOut: async (message) => {
-      // Future enhancement: revoke tokens on signout
-      if ('token' in message && message.token?.email) {
-        console.log(`User ${message.token.email} signed out - token revocation not yet implemented`);
+  trustHost: true,
+  secret: process.env.NEXTAUTH_SECRET,
+  cookies: {
+    pkceCodeVerifier: {
+      name: "next-auth.pkce.code_verifier",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
       }
     }
   },
-  trustHost: true,
-  secret: process.env.NEXTAUTH_SECRET,
 });

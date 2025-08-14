@@ -105,7 +105,7 @@ export default function IntegrationsPage() {
         window.location.href = `/api/integrations/connect/github?callbackUrl=${encodeURIComponent('/integrations')}`;
       } else if (providerId === 'google') {
         // Google is handled through main auth - this shouldn't normally happen
-        window.location.href = `/api/auth/signin/google?callbackUrl=${encodeURIComponent('/integrations')}`;
+        window.location.href = `/api/auth/signin?callbackUrl=${encodeURIComponent('/integrations')}`;
       }
     } catch (error) {
       console.error('Connection failed:', error);

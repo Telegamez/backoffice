@@ -36,6 +36,13 @@
       "when": 1755111135359,
       "tag": "0004_purple_omega_sentinel",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1755142929732,
+      "tag": "0005_glamorous_machine_man",
+      "breakpoints": true
     }
   ]
 }

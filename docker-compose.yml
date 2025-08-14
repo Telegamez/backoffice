@@ -19,16 +19,35 @@ services:
       timeout: 5s
       retries: 20
 
+  redis:
+    image: redis:7-alpine
+    container_name: telegamez_redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 4gb --maxmemory-policy allkeys-lru
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   web:
     build: .
     container_name: telegamez_web
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
       - .env.local
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/telegamez
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       PORT: 3100
       NODE_ENV: production
     ports:
@@ -37,4 +56,5 @@ services:
 
 volumes:
   pgdata:
+  redis_data:
 

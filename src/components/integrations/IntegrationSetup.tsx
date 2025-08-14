@@ -61,7 +61,7 @@ export function IntegrationSetup({
       if (provider === 'google') {
         // For Google, user needs to sign out and sign in again with enhanced scopes
         // This should rarely happen since Google is the primary auth provider
-        window.location.href = `/api/auth/signin/google?callbackUrl=${encodeURIComponent(
+        window.location.href = `/api/auth/signin?callbackUrl=${encodeURIComponent(
           window.location.href
         )}`;
       } else if (provider === 'github') {
