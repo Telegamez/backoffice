@@ -39,17 +39,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     }
   },
-  pages: {
-    signIn: '/api/auth/signin',
-    error: '/api/auth/error',
-  },
+  // Remove custom pages to use NextAuth's default behavior
+  // The /api/auth/signin endpoint will handle the OAuth flow automatically
   callbacks: {
     async redirect({ url, baseUrl }) {
-      // Allows relative callback URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`
-      // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url
-      return baseUrl
+      // Parse the URL to handle it properly
+      try {
+        const parsedUrl = new URL(url, baseUrl);
+        
+        // Always redirect to the base URL after sign in to avoid loops
+        // The user will be redirected to their original destination after authentication
+        if (parsedUrl.pathname === '/api/auth/signin') {
+          return baseUrl;
+        }
+        
+        // Allow relative callback URLs
+        if (url.startsWith("/")) return `${baseUrl}${url}`;
+        
+        // Allow callback URLs on the same origin
+        if (parsedUrl.origin === baseUrl) return url;
+        
+        // Default to base URL for safety
+        return baseUrl;
+      } catch {
+        return baseUrl;
+      }
     },
     async signIn({ account, profile }) {
       try {

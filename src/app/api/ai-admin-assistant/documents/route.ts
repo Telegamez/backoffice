@@ -14,12 +14,22 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get('q');
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
+    const scope = searchParams.get('scope'); // 'all', 'my-drive', 'shared-drive'
+    const driveId = searchParams.get('driveId'); // specific shared drive ID
 
     // Initialize Drive service
     const driveService = new DriveService(session.user.email);
 
-    // Get documents
-    const documents = await driveService.listDocuments(query || undefined, pageSize);
+    // Get documents based on scope
+    let documents;
+    if (scope === 'my-drive') {
+      documents = await driveService.listMyDriveDocuments(query || undefined, pageSize);
+    } else if (scope === 'shared-drive' && driveId) {
+      documents = await driveService.listSharedDriveDocuments(driveId, query || undefined, pageSize);
+    } else {
+      // Default: search all drives
+      documents = await driveService.listAllDocuments(query || undefined, pageSize);
+    }
 
     return NextResponse.json({
       success: true,

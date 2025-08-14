@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { FileText, FolderOpen, Bot, Loader2, Search, ExternalLink } from 'lucide-react';
+import { FileText, FolderOpen, Bot, Loader2, Search, ExternalLink, Users, HardDrive } from 'lucide-react';
 
 interface DriveDocument {
   id: string;
@@ -11,6 +11,15 @@ interface DriveDocument {
   size?: number;
   modifiedTime?: string;
   webViewLink?: string;
+  driveId?: string;
+  driveName?: string;
+}
+
+interface SharedDrive {
+  id: string;
+  name: string;
+  createdTime?: string;
+  hidden?: boolean;
 }
 
 interface DocumentPickerProps {
@@ -20,9 +29,30 @@ interface DocumentPickerProps {
 
 export default function DocumentPicker({ onDocumentSelect, selectedDocumentId }: DocumentPickerProps) {
   const [documents, setDocuments] = useState<DriveDocument[]>([]);
+  const [sharedDrives, setSharedDrives] = useState<SharedDrive[]>([]);
   const [loading, setLoading] = useState(false);
+  const [drivesLoading, setDrivesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDriveScope, setSelectedDriveScope] = useState<'all' | 'my-drive' | string>('all');
+
+  const loadSharedDrives = async () => {
+    setDrivesLoading(true);
+    try {
+      const response = await fetch('/api/ai-admin-assistant/shared-drives');
+      const data = await response.json();
+      
+      if (data.success) {
+        setSharedDrives(data.drives);
+      } else {
+        console.warn('Failed to load shared drives:', data.message);
+      }
+    } catch (err) {
+      console.warn('Error loading shared drives:', err);
+    } finally {
+      setDrivesLoading(false);
+    }
+  };
 
   const loadDocuments = async (query?: string) => {
     setLoading(true);
@@ -32,6 +62,14 @@ export default function DocumentPicker({ onDocumentSelect, selectedDocumentId }:
       const params = new URLSearchParams();
       if (query) params.set('q', query);
       params.set('pageSize', '10');
+      
+      // Add drive scope to API call
+      if (selectedDriveScope === 'my-drive') {
+        params.set('scope', 'my-drive');
+      } else if (selectedDriveScope !== 'all') {
+        params.set('scope', 'shared-drive');
+        params.set('driveId', selectedDriveScope);
+      }
       
       const response = await fetch(`/api/ai-admin-assistant/documents?${params}`);
       const data = await response.json();
@@ -51,7 +89,12 @@ export default function DocumentPicker({ onDocumentSelect, selectedDocumentId }:
 
   useEffect(() => {
     loadDocuments();
-  }, []);
+    loadSharedDrives();
+  }, []); // Initial load only
+
+  useEffect(() => {
+    loadDocuments(searchQuery);
+  }, [selectedDriveScope]); // Re-load when drive scope changes
 
   const handleSearch = () => {
     loadDocuments(searchQuery);
@@ -78,6 +121,20 @@ export default function DocumentPicker({ onDocumentSelect, selectedDocumentId }:
     if (mimeType.includes('spreadsheet')) return '📊';
     if (mimeType.includes('pdf')) return '📕';
     return '📄';
+  };
+
+  const getDriveIcon = (doc: DriveDocument) => {
+    if (doc.driveId) {
+      return <Users className="h-4 w-4 text-blue-500" />;
+    }
+    return <HardDrive className="h-4 w-4 text-gray-500" />;
+  };
+
+  const getDriveLabel = (doc: DriveDocument) => {
+    if (doc.driveId && doc.driveName) {
+      return doc.driveName;
+    }
+    return 'My Drive';
   };
 
   if (error && error.includes('Unauthorized')) {
@@ -112,6 +169,31 @@ export default function DocumentPicker({ onDocumentSelect, selectedDocumentId }:
         </h2>
       </div>
       
+      {/* Drive Selector */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-2">Search in:</label>
+        <select 
+          value={selectedDriveScope}
+          onChange={(e) => setSelectedDriveScope(e.target.value)}
+          className="w-full p-2 border rounded-lg bg-background"
+          disabled={drivesLoading}
+        >
+          <option value="all">All Drives (My Drive + Shared Drives)</option>
+          <option value="my-drive">My Drive Only</option>
+          {sharedDrives.map((drive) => (
+            <option key={drive.id} value={drive.id}>
+              📁 {drive.name}
+            </option>
+          ))}
+        </select>
+        {drivesLoading && (
+          <p className="text-sm text-muted-foreground mt-1">
+            <Loader2 className="h-3 w-3 inline animate-spin mr-1" />
+            Loading shared drives...
+          </p>
+        )}
+      </div>
+
       {/* Search Bar */}
       <div className="mb-4 flex gap-2">
         <div className="flex-1 relative">
@@ -166,6 +248,10 @@ export default function DocumentPicker({ onDocumentSelect, selectedDocumentId }:
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium truncate">{doc.name}</h4>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                        <div className="flex items-center gap-1">
+                          {getDriveIcon(doc)}
+                          <span>{getDriveLabel(doc)}</span>
+                        </div>
                         <span>{formatDate(doc.modifiedTime)}</span>
                         {doc.size && <span>{formatFileSize(doc.size)}</span>}
                       </div>
