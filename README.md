@@ -1,117 +1,223 @@
 # Telegamez Backoffice Platform
 
-A multi-application backoffice platform for Telegamez internal tools, providing secure access to specialized applications through a unified interface.
+A unified authentication and multi-app management system for Telegamez operations, featuring seamless cross-app integration sharing and scalable OAuth provider architecture.
 
-## Platform Overview
+## 🚀 Features
 
-The Telegamez Backoffice is a **platform** that hosts multiple internal applications behind a single authentication layer. Users authenticate once with Google OAuth (@telegamez.com domain) and can access various tools for development, analytics, operations, and AI automation.
+### Multi-Provider Authentication
+- **Primary Authentication**: Google OAuth with @telegamez.com domain restriction
+- **Secondary Integrations**: GitHub, Discord, Slack, and unlimited OAuth providers
+- **Zero Redundancy**: Single authentication per provider across all applications
+- **Cross-App Data Sharing**: GitHub issues in AI Admin, Google Drive access across tools
 
-**Key Platform Features:**
-- 🔐 **Unified Authentication** - Single sign-on with Google OAuth
-- 🏗️ **Application Registry** - Centralized app management and routing
-- 🎨 **Shared UI Components** - Consistent design system across all apps
-- 🗄️ **Shared Infrastructure** - Database, AI services, and deployment pipeline
-- 📊 **Cross-App Analytics** - Usage tracking and audit trails
+### Applications
+- **🤖 AI Admin Assistant**: Document analysis and email automation with Google Workspace integration
+- **📊 GitHub Timeline**: Development timeline visualization with repository and issue tracking
+- **🔧 Integration Management**: Centralized OAuth provider management at `/integrations`
 
-## Platform Architecture
+### Security & Architecture
+- **AES-256-GCM Token Encryption**: Secure storage with authentication tags
+- **Unified Token Management**: Central TokenManager for all provider operations
+- **Cross-App Access Control**: Strict validation for data sharing between applications
+- **Audit Logging**: Complete tracking of integration usage and access patterns
+
+## 🏗️ Architecture
+
+```typescript
+// Primary Authentication (Required)
+Google OAuth → Login + Google Workspace access
+├── Domain restriction: @telegamez.com only
+├── Managed through NextAuth.js
+└── Provides: Drive, Gmail, Calendar access
+
+// Secondary Integrations (Optional)
+GitHub OAuth → Repository and issue access
+Discord OAuth → Server and channel access
+Slack OAuth → Workspace access
+├── Independent OAuth flows
+├── Can connect/disconnect without affecting primary auth
+└── Optional enhancements to functionality
+```
 
 ### Core Technologies
 - **Framework**: Next.js 15 (App Router) + React 19 + TypeScript
-- **Styling**: Tailwind v4 + ShadCN UI components
+- **Styling**: Tailwind CSS + ShadCN UI components
 - **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: Google OAuth via NextAuth.js
-- **AI Integration**: OpenAI GPT-5 via Next.js AI SDK
+- **Authentication**: NextAuth.js with multi-provider OAuth
+- **Security**: AES-256-GCM token encryption with unified token management
+- **Integration**: Cross-app data sharing with audit logging
 - **Deployment**: Docker + nginx proxy at `https://backoffice.telegamez.com`
 
-### Application Structure
-```
-src/
-├── app/
-│   ├── page.tsx                    # Application selector (landing page)
-│   ├── layout.tsx                  # Root layout with authentication
-│   ├── apps/                       # Individual applications
-│   │   ├── layout.tsx              # Shared app layout with navigation
-│   │   ├── github-timeline/        # GitHub Timeline Explorer
-│   │   └── [future-apps]/          # Additional applications
-│   └── api/                        # Shared and app-specific APIs
-├── components/
-│   ├── ApplicationSelector.tsx     # Main app selection interface
-│   └── ui/                         # Shared UI component library
-├── lib/
-│   ├── applications.ts             # Application registry
-│   ├── auth.ts                     # Authentication configuration
-│   └── [shared-services]/          # Shared utilities and services
-└── _docs/                          # Platform and app documentation
-```
+## 🚀 Quick Start
 
-## Current Applications
+### Prerequisites
+- Node.js 18+ 
+- PostgreSQL database
+- Google OAuth app with Workspace APIs enabled
+- GitHub OAuth app (for secondary integration)
 
-| Application | Path | Category | Description |
-|-------------|------|----------|-------------|
-| **GitHub Timeline Explorer** | `/apps/github-timeline` | Development | Interactive timeline with GitHub data and AI insights |
-| **AI Admin Assistant** | `/apps/ai-admin-assistant` | AI | Google Workspace automation (planned) |
+### Installation
 
-*Each application has its own README.md with specific documentation*
-
-## Quick Start
-
-### Platform Setup
-
+1. **Clone and install dependencies**:
 ```bash
-# Install dependencies
+git clone https://github.com/Telegamez/backoffice.git
+cd backoffice
 npm install
+```
 
-# Set up environment variables (see _docs/10-setup.md)
+2. **Environment setup**:
+```bash
 cp .env.example .env.local
+# Fill in your OAuth credentials and database URL
+```
 
-# Start database
-docker run -d --name telegamez-postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_DB=telegamez \
-  -p 55432:5432 postgres:16
+3. **Database setup**:
+```bash
+npm run db:migrate
+```
 
-# Run migrations
-npm run db:migrate:local
-
-# Start development server
+4. **Development server**:
+```bash
 npm run dev
 ```
 
-Access the platform at `http://localhost:3100`
+Visit `http://localhost:3000` and sign in with your @telegamez.com Google account.
 
-### Adding New Applications
+## 🔧 Environment Variables
 
-1. **Register the application** in `/src/lib/applications.ts`
-2. **Create app directory** under `/src/app/apps/your-app/`
-3. **Add application README.md** with app-specific documentation
-4. **Create API routes** under `/src/app/api/` if needed
+### Required Variables
+```env
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/backoffice"
 
-See `_docs/contributing.md` for detailed guidelines.
+# NextAuth
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret-key"
 
-## Shared Services
+# Google OAuth (Primary Authentication)
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
 
-### Authentication
-- Google OAuth with @telegamez.com domain restriction
-- JWT-based session management
-- Route protection middleware
+# GitHub OAuth (Secondary Integration)
+GITHUB_CLIENT_ID="your-github-client-id"
+GITHUB_CLIENT_SECRET="your-github-client-secret"
 
-### Database
-- PostgreSQL with Drizzle ORM
-- Shared schema for user management and audit trails
-- App-specific tables namespaced by application
+# Token Encryption
+TOKEN_ENCRYPTION_KEY="64-character-hex-string"
+```
 
-### AI Services
-- OpenAI GPT-5 integration configured
-- Shared AI utilities and prompt management
-- Usage tracking and rate limiting
+### Generate Encryption Key
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
 
-### UI Components
-- ShadCN UI component library
-- Consistent design tokens and themes
-- Shared application navigation patterns
+## 📱 Applications
 
-## Platform APIs
+### AI Admin Assistant (`/apps/ai-admin-assistant`)
+- **Purpose**: Document analysis and email automation
+- **Required**: Google Workspace (Drive, Gmail)
+- **Optional**: GitHub (includes development tasks in summaries)
+- **Features**: Document analysis, email generation, daily summaries
+
+### GitHub Timeline (`/apps/github-timeline`)
+- **Purpose**: Development timeline visualization
+- **Required**: GitHub (repository and issue access)
+- **Features**: Timeline view, issue tracking, development insights
+
+### Integration Management (`/integrations`)
+- **Purpose**: Centralized OAuth provider management
+- **Features**: Connect/disconnect providers, view integration status, manage permissions
+
+## 🔐 OAuth Provider Setup
+
+### Google OAuth (Primary)
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create OAuth 2.0 credentials
+3. Add authorized redirect URI: `https://yourdomain.com/api/auth/callback/google`
+4. Enable APIs: Drive, Gmail, Calendar
+5. Configure domain restriction for @telegamez.com
+
+### GitHub OAuth (Secondary)
+1. Go to GitHub Settings > Developer settings > OAuth Apps
+2. Create new OAuth App
+3. Set callback URL: `https://yourdomain.com/api/integrations/connect/github/callback`
+4. Approve app in organization settings (for repository access)
+
+## 🔌 Adding New OAuth Providers
+
+The system supports unlimited secondary OAuth providers. See the complete guide:
+
+📋 **[Adding New OAuth Providers Guide](_docs/implementations/implementation-guides/adding-new-oauth-providers.md)**
+
+### Quick Steps for Discord, Slack, etc.
+1. Add provider to integration registry
+2. Create OAuth connection endpoints
+3. Implement data access APIs
+4. Add to application requirements
+5. Provider automatically appears in UI
+
+## 📚 Documentation
+
+### Implementation Guides
+- 📖 [Unified Authentication Implementation](_docs/implementations/implementation-guides/unified-authentication-implementation.md)
+- 🏗️ [Architecture Guide](_docs/implementations/implementation-guides/unified-authentication-architecture.md)
+- 🔌 [Adding New OAuth Providers](_docs/implementations/implementation-guides/adding-new-oauth-providers.md)
+
+### Status & Specifications
+- 📊 [Implementation Status](_docs/implementations/implementation-Status/unified-authentication-status.md)
+- 📋 [Technical Specifications](_docs/implementations/implementationSpecs/unified-authentication-spec.md)
+- 📝 [Latest Changelog](_docs/setup/CHANGELOG-unified-auth.md)
+
+### Platform Documentation
+- 🚀 [Platform Setup](_docs/10-setup.md) - Development environment setup
+- 🔧 [Deployment Guide](_docs/40-deploy.md) - Production deployment
+- 📋 [Contributing Guide](_docs/contributing.md) - Adding new applications
+
+## 🛡️ Security
+
+### Token Management
+- **AES-256-GCM Encryption**: All tokens encrypted with authentication tags
+- **Automatic Cleanup**: Corrupted tokens detected and removed
+- **Cross-App Validation**: Apps can only access declared capabilities
+- **Audit Logging**: Complete trail of integration usage
+
+### Access Control
+- **Domain Restriction**: Primary authentication limited to @telegamez.com
+- **Scope Validation**: Real-time checking of OAuth permissions
+- **Provider Isolation**: Secondary providers don't affect primary authentication
+- **Secure Callbacks**: State validation and CSRF protection
+
+## 🚀 Deployment
+
+### Environment Setup
+```bash
+# Production environment variables
+NEXTAUTH_URL="https://backoffice.telegamez.com"
+DATABASE_URL="your-production-database-url"
+# ... other production configs
+```
+
+### Docker Deployment
+```bash
+docker-compose up -d
+```
+
+### Vercel Deployment
+```bash
+vercel deploy
+```
+
+## 📊 API Endpoints
+
+### Integration Management
+- `GET /api/integrations/status?app={appId}` - Get integration status
+- `GET /api/integrations/connect/{provider}` - Initiate OAuth connection
+- `POST /api/integrations/disconnect/{provider}` - Disconnect provider
+
+### Cross-App Data Access
+- `GET /api/integrations/github/user-issues` - Get user's GitHub issues
+- `GET /api/integrations/discord/guilds` - Get Discord servers (when implemented)
+- `GET /api/integrations/slack/channels` - Get Slack channels (when implemented)
 
 ### Core Platform APIs
 - `GET /api/auth/signin` - OAuth authentication
@@ -119,54 +225,84 @@ See `_docs/contributing.md` for detailed guidelines.
 - `GET /api/applications` - Application registry
 - `GET /api/user/profile` - User profile information
 
-*Application-specific APIs are documented in each app's README.md*
+## 🔄 Migration from Legacy Systems
 
-## Deployment
+### Token Encryption Fix (August 14, 2025)
+- System automatically detects and removes corrupted legacy tokens
+- Users may need to reconnect secondary providers (GitHub, etc.)
+- Primary Google authentication continues working unchanged
 
-The platform is containerized and deployed as a single unit:
+### Adding Integrations
+- Existing applications enhanced with integration capabilities
+- Backward compatible - no breaking changes for core functionality
+- Clear migration path documented for each component
 
-```bash
-# Build and deploy
-docker compose up -d --build
+## 🤝 Contributing
 
-# View logs
-docker compose logs -f
-```
-
-**Production Environment**: `https://backoffice.telegamez.com`
-
-## Platform Documentation
-
-| Document | Description |
-|----------|-------------|
-| `_docs/10-setup.md` | Development environment setup |
-| `_docs/40-deploy.md` | Production deployment guide |
-| `_docs/operations.md` | Daily operations and troubleshooting |
-| `_docs/contributing.md` | Guidelines for adding new applications |
-| `_docs/prds/` | Product Requirements Documents |
-
-## Application Documentation
-
-Each application maintains its own documentation:
-- `src/app/apps/[app-name]/README.md` - Application-specific guide
-- `_docs/prds/[app-name].md` - Product requirements (if applicable)
-
-## Contributing
+### Development Workflow
+1. Fork the repository
+2. Create a feature branch
+3. Follow the OAuth provider patterns for new integrations
+4. Add comprehensive tests
+5. Update documentation
+6. Submit pull request
 
 ### Platform-Level Changes
 - Authentication and session management
 - Shared UI components and design system
 - Application registry and routing
-- Shared services and utilities
+- Integration system and OAuth providers
 
 ### Application-Level Changes
 - Individual application features
 - App-specific APIs and database schemas
 - Application-specific documentation
 
-See `_docs/contributing.md` for detailed guidelines and review processes.
+## 📋 Troubleshooting
+
+### Common Issues
+
+#### "GitHub integration not connected"
+- Check GitHub organization OAuth app approval
+- Reconnect via "Manage Auth" if token was corrupted
+- Verify callback URLs match OAuth app settings
+
+#### "Failed to decrypt token"
+- Legacy token detected - system will auto-cleanup
+- Reconnect affected provider via `/integrations` page
+- Ensure TOKEN_ENCRYPTION_KEY is properly set
+
+#### "Insufficient scopes"
+- Re-authenticate with enhanced permissions
+- Check provider-specific scope requirements
+- Verify app integration requirements
+
+### Getting Help
+- Check the [implementation guides](_docs/implementations/implementation-guides/)
+- Review [troubleshooting documentation](_docs/implementations/implementation-guides/unified-authentication-implementation.md#troubleshooting)
+- Open an issue with detailed error information
+
+## 📞 Support
+
+- **Documentation**: Comprehensive guides in `_docs/` directory
+- **Issues**: GitHub Issues for bug reports and feature requests
+- **Security**: Email security@telegamez.com for security issues
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-**Platform Maintainers**: Telegamez Development Team  
-**Questions**: Contact the development team or create an issue
+## 🏆 Architecture Highlights
+
+- ✅ **Zero Authentication Redundancy**: Single OAuth per provider across all apps
+- ✅ **Enhanced Security**: AES-256-GCM token encryption with authentication tags  
+- ✅ **Unlimited Scalability**: Clear patterns for adding any OAuth provider
+- ✅ **Cross-App Integration**: GitHub issues in AI Admin, shared Google Drive access
+- ✅ **Centralized Management**: Single `/integrations` page for all providers
+- ✅ **Production Ready**: Comprehensive security, monitoring, and deployment guides
+
+**Built with**: Next.js 15, NextAuth.js, TypeScript, Tailwind CSS, PostgreSQL, Drizzle ORM
+
+**Powered by**: [Claude Code](https://claude.ai/code) for AI-assisted development
