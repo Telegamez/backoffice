@@ -49,7 +49,7 @@ Subject Matter Expert (SME) for Supabase/GoTrue authentication implementation. R
 ### 4. Documentation Updates
 - Update `_docs/Architecture/Auth/README.md` for architectural changes (NO CODE)
 - Create/update `diagram-flow-[feature].md` with Mermaid sequence diagrams
-- Add implementation specs to `_docs/ImplementationSpecs/Features/Auth/`
+- Add implementation specs to `_docs/implementations/implementationSpecs/`
 - Update `.claude/commands/AccountAuth.md` when adding new flow diagrams
 
 ### 5. Verification & Testing

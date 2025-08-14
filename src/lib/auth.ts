@@ -1,17 +1,31 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import { tokenManager } from './integrations/token-manager';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
+    // Primary authentication provider - Google only (for login)
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
-          prompt: "select_account",
-        },
-      },
-    }),
+          scope: [
+            // Base scopes for login
+            'openid',
+            'email',
+            'profile',
+            // Enhanced scopes for Workspace integration
+            'https://www.googleapis.com/auth/drive.readonly',
+            'https://www.googleapis.com/auth/gmail.modify',
+            'https://www.googleapis.com/auth/calendar.readonly'
+          ].join(' '),
+          access_type: 'offline',
+          prompt: 'consent'        // Force consent to get refresh token
+        }
+      }
+    })
+    // GitHub will be handled through a separate OAuth flow for secondary integration
   ],
   session: {
     strategy: "jwt",
@@ -29,6 +43,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return false;
           }
         }
+        // Only Google is configured as a NextAuth provider
         // For other providers, we can add different checks or allow them by default.
         return true;
       } catch (error) {
@@ -36,10 +51,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return false;
       }
     },
-    async jwt({ token, user }) {
+    async jwt({ token, account, user }) {
       try {
+        // Store Google OAuth tokens when user authenticates (primary provider only)
+        if (account && user?.email && account.provider === 'google') {
+          await tokenManager.saveProviderToken(
+            user.email,
+            'google',
+            account.access_token!,
+            account.refresh_token,
+            account.scope?.split(' ') || [],
+            account.expires_at ? new Date(account.expires_at * 1000) : undefined
+          );
+        }
+        
         if (user) {
-          // No database operations - just pass email and id through
           token.email = user.email;
           token.id = user.id;
         }
@@ -54,11 +80,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (token?.email && session.user) {
           session.user.email = token.email as string;
           session.user.id = token.id as string;
+          
+          // Add integration status to session
+          // This will be populated by a future enhancement
+          session.integrations = [];
         }
         return session;
       } catch (error) {
         console.error('Unexpected error in session callback:', error);
         return session;
+      }
+    }
+  },
+  events: {
+    signOut: async (message) => {
+      // Future enhancement: revoke tokens on signout
+      if ('token' in message && message.token?.email) {
+        console.log(`User ${message.token.email} signed out - token revocation not yet implemented`);
       }
     }
   },

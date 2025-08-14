@@ -37,8 +37,7 @@ When implementing auth changes, **MUST** update relevant documentation:
    - Use Mermaid sequence diagram format for consistency
 
 3. **Implementation Specs** - Document specific implementation details in:
-   - `_docs/ImplementationSpecs/Features/Auth/` for new features
-   - `_docs/ImplementationSpecs/BugFixes/` for auth-related fixes
+   - `_docs/implementations/implementationSpecs/` for new features and fixes
 
 4. **Update This Command** - When creating new `diagram-flow-*.md` files, **MUST** update this AccountAuth command to:
    - Add the new flow diagram to the "Flow Diagrams" reference list above
@@ -207,7 +206,7 @@ When users request auth-related changes, this command should:
 6. **Document** all changes by updating relevant files:
    - Update `_docs/Architecture/Auth/README.md` for architectural changes (NO CODE)
    - Create/update `_docs/Architecture/Auth/diagram-flow-[feature].md` with detailed sequence diagrams
-   - Add implementation specs in `_docs/ImplementationSpecs/Features/Auth/` as needed
+   - Add implementation specs in `_docs/implementations/implementationSpecs/` as needed
    - **Update this AccountAuth command** when adding new flow diagrams to maintain current reference list
 7. **Verify** security, separation of concerns, and documentation completeness
 

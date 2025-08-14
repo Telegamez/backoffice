@@ -1,10 +1,45 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { FileText, Mail, Calendar, Bot } from 'lucide-react';
+import { clientGitHubIntegration, type DailySummary, type GitHubIssue } from './lib/client-integration';
 
 export default function AIAdminAssistantDashboard() {
+  const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
+
+  useEffect(() => {
+    // Get user session and load daily summary
+    loadUserAndSummary();
+  }, []);
+
+  const loadUserAndSummary = async () => {
+    try {
+      // In a real implementation, you'd get the session on the server side
+      // For now, we'll simulate a user email for demonstration
+      const mockUserEmail = "user@telegamez.com";
+
+      // Load base summary (simulate document analysis data)
+      const baseSummary: DailySummary = {
+        date: new Date().toISOString().split('T')[0],
+        documentsAnalyzed: 0,
+        emailsGenerated: 0,
+        timeSaved: 0
+      };
+
+      // Enhance with GitHub integration if available
+      const enhancedSummary = await clientGitHubIntegration.enhanceDailySummaryWithGitHub(
+        baseSummary,
+        mockUserEmail
+      );
+
+      setDailySummary(enhancedSummary);
+    } catch (error) {
+      console.error('Failed to load summary:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen p-6">
       <header className="mb-6 flex items-center justify-between">
@@ -16,7 +51,13 @@ export default function AIAdminAssistantDashboard() {
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" disabled>
-            Connect Google Workspace
+            Google Workspace (Connected)
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => window.location.href = '/integrations'}
+          >
+            Manage Auth
           </Button>
         </div>
       </header>
@@ -84,6 +125,45 @@ export default function AIAdminAssistantDashboard() {
         </div>
       </div>
 
+
+      {/* GitHub Issues (if available) */}
+      {dailySummary?.developmentTasks?.githubIssues && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Active GitHub Issues</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {dailySummary.developmentTasks.githubIssues.map((issue: GitHubIssue) => (
+                <div key={issue.id} className="p-3 border rounded-lg">
+                  <a 
+                    href={issue.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline font-medium"
+                  >
+                    {issue.title}
+                  </a>
+                  <p className="text-sm text-gray-600 mt-1">{issue.repository}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    {issue.labels.map(label => (
+                      <span key={label} className="px-2 py-1 bg-gray-100 text-xs rounded">
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {(dailySummary.developmentTasks.totalActiveIssues ?? 0) > 5 && (
+              <p className="text-sm text-gray-600 mt-3">
+                Showing 5 of {dailySummary.developmentTasks.totalActiveIssues} active issues
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Daily Summary */}
       <div className="rounded-xl border bg-card p-4">
         <div className="mb-3 flex items-center justify-between">
@@ -94,6 +174,11 @@ export default function AIAdminAssistantDashboard() {
             <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Daily intelligence summary will appear here once OAuth is configured</p>
             <p className="text-sm mt-2">Grant Google Workspace permissions to get started</p>
+            {dailySummary?.developmentTasks?.githubIssues && (
+              <p className="text-sm mt-2 text-blue-600">
+                ✓ GitHub integration active - {dailySummary.developmentTasks.githubIssues.length} issues loaded
+              </p>
+            )}
           </div>
         </div>
       </div>

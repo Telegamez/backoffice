@@ -111,10 +111,20 @@ const ApplicationSelector: React.FC<ApplicationSelectorProps> = ({ userEmail }) 
                 Welcome {userEmail}. Select a tool to get started.
               </p>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground">
-                {applications.length} tool{applications.length !== 1 ? 's' : ''} available
-              </p>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="outline"
+                onClick={() => router.push('/integrations')}
+                className="flex items-center gap-2"
+              >
+                <Settings className="h-4 w-4" />
+                Manage Integrations
+              </Button>
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">
+                  {applications.length} tool{applications.length !== 1 ? 's' : ''} available
+                </p>
+              </div>
             </div>
           </div>
         </header>

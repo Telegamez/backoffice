@@ -1,0 +1,1 @@
+ALTER TABLE "user_integrations" ADD CONSTRAINT "user_provider_unique" UNIQUE("user_email","provider_id");

@@ -69,6 +69,10 @@ admin_assistant_audit
 ### Platform Documentation
 - `README.md` - Platform overview
 - `_docs/` - Platform setup, deployment, operations
+- `_docs/implementations/` - Implementation guides, specs, and status tracking
+  - `implementation-guides/` - How-to guides for major features
+  - `implementationSpecs/` - Detailed technical specifications
+  - `implementation-Status/` - Project status and progress tracking
 
 ### Application Documentation  
 - `/src/app/apps/[app]/README.md` - App-specific docs

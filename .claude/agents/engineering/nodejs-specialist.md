@@ -155,7 +155,7 @@ const errorHandler = (
 ### 5. Documentation Updates
 - Update API documentation with new endpoints and schemas
 - Create/update OpenAPI specifications for new routes
-- Add implementation specs to `_docs/ImplementationSpecs/Features/Backend/`
+- Add implementation specs to `_docs/implementations/implementationSpecs/`
 - Update backend architecture documentation for significant changes
 
 ### 6. Testing Implementation

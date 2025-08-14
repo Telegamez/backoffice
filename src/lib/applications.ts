@@ -1,3 +1,5 @@
+import { IntegrationRequirement, IntegrationExport } from './integrations/types';
+
 export interface BackofficeApp {
   id: string;
   name: string;
@@ -12,6 +14,13 @@ export interface BackofficeApp {
     api?: string[];
     external?: string[];
   };
+  
+  // NEW: Integration requirements
+  integrations?: {
+    required: IntegrationRequirement[];
+    optional: IntegrationRequirement[];
+    provides: IntegrationExport[];
+  };
 }
 
 export const applications: BackofficeApp[] = [
@@ -25,6 +34,31 @@ export const applications: BackofficeApp[] = [
     enabled: true,
     services: {
       api: ['github-sync', 'segments', 'segment-insights'],
+    },
+    integrations: {
+      required: [
+        {
+          capability: 'github.repos',
+          purpose: 'Access repository information',
+          fallback: 'disable',
+          priority: 'required'
+        },
+        {
+          capability: 'github.issues',
+          purpose: 'Display issues in timeline',
+          fallback: 'disable',
+          priority: 'required'
+        }
+      ],
+      optional: [],
+      provides: [
+        {
+          capability: 'timeline.events',
+          dataType: 'timeline_event',
+          endpoint: '/api/apps/github-timeline/events',
+          permissions: ['timeline:read']
+        }
+      ]
     }
   },
   {
@@ -38,6 +72,44 @@ export const applications: BackofficeApp[] = [
     services: {
       api: ['google-drive-api', 'gmail-api', 'openai-gpt5'],
       external: ['google-workspace-oauth']
+    },
+    integrations: {
+      required: [
+        {
+          capability: 'google.drive',
+          purpose: 'Analyze documents for email campaigns',
+          fallback: 'disable',
+          priority: 'required'
+        },
+        {
+          capability: 'google.gmail',
+          purpose: 'Send personalized email campaigns',
+          fallback: 'disable',
+          priority: 'required'
+        }
+      ],
+      optional: [
+        {
+          capability: 'github.user_issues',
+          purpose: 'Include GitHub tasks in daily summary',
+          fallback: 'limited',
+          priority: 'optional'
+        },
+        {
+          capability: 'google.calendar',
+          purpose: 'Include calendar events in context',
+          fallback: 'limited',
+          priority: 'optional'
+        }
+      ],
+      provides: [
+        {
+          capability: 'ai.document_analysis',
+          dataType: 'document_analysis',
+          endpoint: '/api/apps/ai-admin-assistant/analyze',
+          permissions: ['ai:read']
+        }
+      ]
     }
   },
   // Future applications can be added here

@@ -312,7 +312,7 @@ Consult the specialist mapping to determine current agents, then structure work 
 ## Functional Specification Summary
 
 ### Document Created
-- **File**: `_docs/ImplementationSpecs/[branch-name].md`
+- **File**: `_docs/implementations/implementationSpecs/[branch-name].md`
 - **Ticket**: [GitHub ticket number and title]
 - **Scope**: [Brief description of feature/refactor scope]
 

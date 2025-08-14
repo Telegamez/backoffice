@@ -59,7 +59,13 @@ The Telegamez Backoffice is a **multi-application platform** with strict separat
 │   ├── 40-deploy.md                    # Platform deployment
 │   ├── operations.md                   # Platform operations
 │   ├── contributing.md                 # Platform guidelines
-│   └── prds/                           # Product Requirements Documents
+│   ├── prds/                           # Product Requirements Documents
+│   ├── implementations/                # Implementation tracking
+│   │   ├── implementation-guides/      # How-to guides for major features
+│   │   ├── implementationSpecs/        # Detailed technical specifications
+│   │   └── implementation-Status/      # Project status and progress tracking
+│   ├── architecture/                   # Architecture documentation
+│   └── technical-reviews/              # Technical review documents
 └── drizzle/                            # Platform: Database migrations
 ```
 

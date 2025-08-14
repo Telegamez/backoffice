@@ -22,6 +22,20 @@
       "when": 1754956749969,
       "tag": "0002_natural_newton_destine",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1755111115407,
+      "tag": "0003_optimal_deadpool",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1755111135359,
+      "tag": "0004_purple_omega_sentinel",
+      "breakpoints": true
     }
   ]
 }

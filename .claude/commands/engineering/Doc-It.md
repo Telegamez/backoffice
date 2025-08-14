@@ -56,9 +56,10 @@ When you run this command, it will:
 ## Files to Monitor
 - `README.md` files at all levels
 - `CLAUDE.md` for workflow memories and guidelines
-- `_docs/Architecture/**/*.md` for detailed architecture documentation
-- `_docs/ImplementationSpecs/**/*.md` for detailed implementation documentation
-- `_docs/ImplementationSpecs/TechDebt/*.md` for detailed changes that will be deferred to a future work effort
+- `_docs/architecture/**/*.md` for detailed architecture documentation
+- `_docs/implementations/implementationSpecs/**/*.md` for detailed implementation documentation
+- `_docs/implementations/implementation-Status/**/*.md` for project status tracking
+- `_docs/implementations/implementation-guides/**/*.md` for implementation guides
 - `packages/*/README.md` for package-specific docs
 - API documentation files
 - Architecture documentation
