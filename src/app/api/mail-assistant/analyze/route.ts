@@ -8,6 +8,7 @@ const AnalyzeRequestSchema = z.object({
   documentType: z.string().optional(),
   documentName: z.string().optional(),
   analysisTypes: z.array(z.enum(['summary', 'key_points', 'contacts', 'tasks'])).min(1, 'At least one analysis type is required'),
+  inferencePrompt: z.string().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -29,6 +30,7 @@ export async function POST(request: NextRequest) {
       documentType: validatedData.documentType || 'unknown',
       documentName: validatedData.documentName,
       analysisTypes: validatedData.analysisTypes,
+      inferencePrompt: validatedData.inferencePrompt,
       requestId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     });
 

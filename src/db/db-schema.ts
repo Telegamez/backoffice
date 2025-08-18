@@ -172,33 +172,88 @@ export const adminAssistantAiCache = pgTable('admin_assistant_ai_cache', {
 
 // Document workflow tracking
 export const adminAssistantWorkflows = pgTable('admin_assistant_workflows', {
+  // Existing fields from the original table definition
   id: serial('id').primaryKey(),
   userEmail: text('user_email').notNull(),
-  workflowType: text('workflow_type').notNull(), // 'document_to_email', 'daily_summary', 'bulk_personalization'
-  status: text('status').notNull(), // 'pending', 'processing', 'completed', 'failed', 'cancelled'
-  sourceDocumentId: text('source_document_id'), // Google Drive file ID
+  workflowType: text('workflow_type').notNull(),
+  status: text('status').notNull(),
+  sourceDocumentId: text('source_document_id'),
   sourceDocumentName: text('source_document_name'),
   recipientCount: integer('recipient_count').default(0),
   emailsSent: integer('emails_sent').default(0),
   emailsFailed: integer('emails_failed').default(0),
   processingStarted: timestamp('processing_started'),
   processingCompleted: timestamp('processing_completed'),
-  configuration: jsonb('configuration').$type<{
-    emailTemplate?: string;
-    personalizationFields?: string[];
-    sendSchedule?: string;
-    recipientSource?: string;
-    reviewRequired?: boolean;
-    metadata?: Record<string, unknown>;
-  }>().notNull().default({}),
-  results: jsonb('results').$type<{
-    analysisResults?: unknown;
-    generatedEmails?: Array<{ recipient: string; content: string; status: string }>;
-    deliveryStatus?: Record<string, string>;
-    errorMessages?: string[];
-    metadata?: Record<string, unknown>;
-  }>().notNull().default({}),
+  configuration: jsonb('configuration').$type<any>().notNull().default({}),
+  results: jsonb('results').$type<any>().notNull().default({}),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  
+  // New columns from PRD
+  workflowVersion: text('workflow_version').default('1.0'),
+  parentWorkflowId: integer('parent_workflow_id').references(() => adminAssistantWorkflows.id),
+  approvalStatus: text('approval_status').default('none'), // 'none', 'pending', 'approved', 'rejected'
+  approvalDetails: jsonb('approval_details').default({}),
+  executionContext: jsonb('execution_context').default({}),
+});
+
+// Intent detection cache table from PRD
+export const adminAssistantIntentCache = pgTable('admin_assistant_intent_cache', {
+  id: serial('id').primaryKey(),
+  userEmail: text('user_email').notNull(),
+  queryHash: text('query_hash').notNull(),
+  queryText: text('query_text').notNull(),
+  detectedIntent: jsonb('detected_intent').notNull(),
+  confidence: integer('confidence').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  expiresAt: timestamp('expires_at').notNull(),
+
+}, (table) => ({
+  queryHashUnique: unique("query_hash_unique").on(table.queryHash)
+}));
+
+// Workflow action definitions from PRD
+export const adminAssistantWorkflowActions = pgTable('admin_assistant_workflow_actions', {
+  id: serial('id').primaryKey(),
+  actionType: text('action_type').notNull().unique(),
+  actionName: text('action_name').notNull(),
+  description: text('description').notNull(),
+  version: text('version').notNull().default('1.0'),
+  schemaDefinition: jsonb('schema_definition').notNull(),
+  implementationClass: text('implementation_class').notNull(),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Workflow execution steps from PRD
+export const adminAssistantWorkflowSteps = pgTable('admin_assistant_workflow_steps', {
+  id: serial('id').primaryKey(),
+  workflowId: integer('workflow_id').references(() => adminAssistantWorkflows.id),
+  stepName: text('step_name').notNull(),
+  stepOrder: integer('step_order').notNull(),
+  status: text('status').notNull().default('pending'), // 'pending', 'running', 'completed', 'failed', 'skipped'
+  inputData: jsonb('input_data').default({}),
+  outputData: jsonb('output_data').default({}),
+  errorDetails: jsonb('error_details').default({}),
+  startedAt: timestamp('started_at'),
+  completedAt: timestamp('completed_at'),
+  retryCount: integer('retry_count').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Email campaign specific data from PRD
+export const adminAssistantEmailCampaigns = pgTable('admin_assistant_email_campaigns', {
+  id: serial('id').primaryKey(),
+  workflowId: integer('workflow_id').references(() => adminAssistantWorkflows.id).unique(),
+  campaignName: text('campaign_name').notNull(),
+  sourceDocumentId: text('source_document_id').notNull(),
+  extractionResults: jsonb('extraction_results').notNull(),
+  emailTemplate: jsonb('email_template').notNull(),
+  recipientData: jsonb('recipient_data').notNull(),
+  deliveryStatus: jsonb('delivery_status').default({}),
+  metrics: jsonb('metrics').default({}),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 

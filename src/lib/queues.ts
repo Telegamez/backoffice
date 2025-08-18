@@ -85,6 +85,7 @@ export interface DocumentAnalysisJobData {
   documentType: string;
   documentName?: string;
   analysisTypes: ('summary' | 'key_points' | 'contacts' | 'tasks')[];
+  inferencePrompt?: string;
   requestId?: string;
 }
 

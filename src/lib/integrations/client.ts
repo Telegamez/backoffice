@@ -147,7 +147,7 @@ export class IntegrationClient {
 
     try {
       // Check availability via API instead of direct database access
-      const response = await fetch(`/api/integrations/status?app=ai-admin-assistant&userEmail=${encodeURIComponent(userEmail)}`);
+      const response = await fetch(`/api/integrations/status?app=mail-assistant&userEmail=${encodeURIComponent(userEmail)}`);
       if (!response.ok) return false;
       
       const data = await response.json();

@@ -19,19 +19,17 @@ interface DriveDocument {
 
 interface AnalysisResult {
   status: 'pending' | 'processing' | 'completed' | 'error';
-  summary?: string;
-  keyPoints?: string[];
-  contacts?: Array<{ name: string; email: string; role?: string }>;
-  tasks?: string[];
+  answer?: string;
   confidence?: number;
-  jobId?: string;
+  sources?: Array<{ documentId: string; excerpt: string; }>;
 }
 
-export default function AIAdminAssistantDashboard() {
+export default function MailAssistantDashboard() {
   const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<DriveDocument | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [inferenceText, setInferenceText] = useState('');
 
   useEffect(() => {
     loadUserAndSummary();
@@ -61,6 +59,7 @@ export default function AIAdminAssistantDashboard() {
   const handleDocumentSelect = (document: DriveDocument) => {
     setSelectedDocument(document);
     setAnalysisResult(null);
+    setInferenceText('');
   };
 
   const handleAnalyzeDocument = async () => {
@@ -70,82 +69,72 @@ export default function AIAdminAssistantDashboard() {
     setAnalysisResult({ status: 'processing' });
 
     try {
-      const response = await fetch('/api/ai-admin-assistant/analyze', {
+      // Step 1: Call the new Intent Detection API
+      const intentResponse = await fetch('/api/ai-assistant/intent', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          documentId: selectedDocument.id,
-          documentType: selectedDocument.mimeType,
-          documentName: selectedDocument.name,
-          analysisTypes: ['summary', 'key_points', 'contacts', 'tasks'],
+          query: inferenceText,
+          documentContext: {
+            documentId: selectedDocument.id,
+            documentType: selectedDocument.mimeType,
+            contentPreview: '', // Preview can be omitted for now
+          },
         }),
       });
 
-      const data = await response.json();
+      const intentData = await intentResponse.json();
 
-      if (data.success) {
-        setAnalysisResult({
-          status: 'processing',
-          jobId: data.jobId,
+      if (!intentData.success) {
+        throw new Error('Failed to detect intent');
+      }
+
+      // Step 2: Based on intent, call the appropriate API
+      if (intentData.result.mode === 'simple') {
+        const inferenceResponse = await fetch('/api/ai-assistant/inference', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: inferenceText,
+            documentId: selectedDocument.id,
+          }),
         });
 
-        // Poll for results (in a real app, you'd use WebSockets or Server-Sent Events)
-        pollForResults(data.jobId);
+        const inferenceData = await inferenceResponse.json();
+
+        if (inferenceData.success) {
+          setAnalysisResult({
+            status: 'completed',
+            answer: inferenceData.result.answer,
+            confidence: inferenceData.result.confidence,
+            sources: inferenceData.result.sources,
+          });
+        } else {
+          throw new Error(inferenceData.error || 'Inference API failed');
+        }
       } else {
+        // Placeholder for workflow logic
         setAnalysisResult({
           status: 'error',
+          answer: 'Workflow mode is not yet implemented.',
         });
       }
     } catch (error) {
       console.error('Analysis failed:', error);
       setAnalysisResult({
         status: 'error',
+        answer: error instanceof Error ? error.message : 'An unknown error occurred.',
       });
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const pollForResults = (jobId: string) => {
-    // Simulate polling for job completion
-    // In a real implementation, you'd poll the job status endpoint
-    const pollInterval = setInterval(() => {
-      // For demo purposes, simulate completion after 3 seconds
-      setTimeout(() => {
-        setAnalysisResult({
-          status: 'completed',
-          summary: `Analysis complete for "${selectedDocument?.name}". This document contains project information and stakeholder communications.`,
-          keyPoints: [
-            'Project timeline spans Q3-Q4 2024',
-            'Budget allocation of $150K approved',
-            'Three key stakeholders identified',
-            'Weekly reporting cadence established'
-          ],
-          contacts: [
-            { name: 'John Smith', email: 'john.smith@company.com', role: 'Project Manager' },
-            { name: 'Sarah Johnson', email: 'sarah.j@company.com', role: 'Stakeholder' }
-          ],
-          tasks: [
-            'Schedule kickoff meeting',
-            'Prepare project charter',
-            'Set up weekly status reports',
-            'Coordinate with development team'
-          ],
-          confidence: 89,
-          jobId,
-        });
-        clearInterval(pollInterval);
-      }, 3000);
-    }, 1000);
-  };
-
   return (
     <div className="min-h-screen p-6">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">AI Admin Assistant</h1>
+          <h1 className="text-2xl font-bold">Mail Assistant</h1>
           <p className="text-sm text-muted-foreground mt-1">
             AI-powered automation for Google Workspace document-to-email workflows
           </p>
@@ -198,7 +187,6 @@ export default function AIAdminAssistantDashboard() {
           selectedDocumentId={selectedDocument?.id}
         />
         <div className="space-y-4">
-          <AIAnalysisPanel analysis={analysisResult || undefined} />
           {selectedDocument && (
             <div className="rounded-xl border bg-card p-4">
               <div className="flex items-center justify-between mb-4">
@@ -211,17 +199,17 @@ export default function AIAdminAssistantDashboard() {
                   {isAnalyzing || analysisResult?.status === 'processing' ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Analyzing...
+                      Processing...
                     </>
                   ) : (
                     <>
                       <Bot className="h-4 w-4 mr-2" />
-                      Analyze with AI
+                      Ask
                     </>
                   )}
                 </Button>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 mb-4">
                 <span className="text-2xl">
                   {selectedDocument.mimeType.includes('document') && '📄'}
                   {selectedDocument.mimeType.includes('spreadsheet') && '📊'}
@@ -234,8 +222,22 @@ export default function AIAdminAssistantDashboard() {
                   </p>
                 </div>
               </div>
+              <div className="space-y-2">
+                <label htmlFor="inference-text" className="text-sm font-medium">
+                  Your Question
+                </label>
+                <textarea
+                  id="inference-text"
+                  placeholder="Ask a question about this document..."
+                  value={inferenceText}
+                  onChange={(e) => setInferenceText(e.target.value)}
+                  rows={3}
+                  className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                />
+              </div>
             </div>
           )}
+          <AIAnalysisPanel analysis={analysisResult || undefined} />
         </div>
       </div>
 
@@ -278,24 +280,6 @@ export default function AIAdminAssistantDashboard() {
         </Card>
       )}
 
-      {/* Daily Summary */}
-      <div className="rounded-xl border bg-card p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Daily Workflow Intelligence</h2>
-        </div>
-        <div className="rounded-lg border bg-background p-6">
-          <div className="text-center text-muted-foreground">
-            <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Daily intelligence summary will appear here once OAuth is configured</p>
-            <p className="text-sm mt-2">Grant Google Workspace permissions to get started</p>
-            {dailySummary?.developmentTasks?.githubIssues && (
-              <p className="text-sm mt-2 text-blue-600">
-                ✓ GitHub integration active - {dailySummary.developmentTasks.githubIssues.length} issues loaded
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

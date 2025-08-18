@@ -15,7 +15,7 @@ export default function DocumentAnalysisPage() {
       <div className="mb-6">
         <Button
           variant="ghost"
-          onClick={() => router.push('/apps/ai-admin-assistant')}
+          onClick={() => router.push('/apps/mail-assistant')}
           className="mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -90,7 +90,7 @@ export default function DocumentAnalysisPage() {
               <Button 
                 className="w-full" 
                 disabled
-                onClick={() => router.push(`/apps/ai-admin-assistant/document/${fileId}/compose`)}
+                onClick={() => router.push(`/apps/mail-assistant/document/${fileId}/compose`)}
               >
                 <Mail className="h-4 w-4 mr-2" />
                 Create Email Campaign

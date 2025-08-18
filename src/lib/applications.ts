@@ -62,11 +62,11 @@ export const applications: BackofficeApp[] = [
     }
   },
   {
-    id: 'ai-admin-assistant',
-    name: 'AI Admin Assistant',
+    id: 'mail-assistant',
+    name: 'Mail Assistant',
     description: 'AI-powered automation for Google Workspace document-to-email workflows',
     icon: 'Bot',
-    path: '/apps/ai-admin-assistant',
+    path: '/apps/mail-assistant',
     category: 'ai',
     enabled: true,
     services: {
@@ -106,7 +106,7 @@ export const applications: BackofficeApp[] = [
         {
           capability: 'ai.document_analysis',
           dataType: 'document_analysis',
-          endpoint: '/api/apps/ai-admin-assistant/analyze',
+          endpoint: '/api/apps/mail-assistant/analyze',
           permissions: ['ai:read']
         }
       ]

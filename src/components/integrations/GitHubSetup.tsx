@@ -122,10 +122,10 @@ export function GitHubSetup({ isConnected = false, onConnectionChange }: GitHubS
           <div className="flex gap-2">
             <Button
               variant="default"
-              onClick={() => window.location.href = '/apps/ai-admin-assistant'}
+              onClick={() => window.location.href = '/apps/mail-assistant'}
             >
               <ArrowRight className="h-4 w-4 mr-2" />
-              Return to AI Admin Assistant
+              Return to Mail Assistant
             </Button>
             <Button
               variant="outline"

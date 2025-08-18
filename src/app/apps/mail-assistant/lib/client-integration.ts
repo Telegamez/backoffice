@@ -27,7 +27,7 @@ export class ClientGitHubIntegration {
       const response = await fetch('/api/integrations/github/user-issues', {
         headers: {
           'X-User-Email': userEmail,
-          'X-Requesting-App': 'ai-admin-assistant'
+          'X-Requesting-App': 'mail-assistant'
         }
       });
 
@@ -64,7 +64,7 @@ export class ClientGitHubIntegration {
 
   async isGitHubAvailable(userEmail: string): Promise<boolean> {
     try {
-      const response = await fetch(`/api/integrations/status?app=ai-admin-assistant&userEmail=${encodeURIComponent(userEmail)}`);
+      const response = await fetch(`/api/integrations/status?app=mail-assistant&userEmail=${encodeURIComponent(userEmail)}`);
       if (!response.ok) return false;
       
       const data = await response.json();

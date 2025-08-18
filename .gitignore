@@ -47,3 +47,7 @@ Thumbs.db
 # Other tool caches
 .turbo/
 .parcel-cache/
+
+# Claude
+.claude/
+.claude-archive/

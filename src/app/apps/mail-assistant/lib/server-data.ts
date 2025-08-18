@@ -9,7 +9,7 @@ export async function getGitHubIssuesForUser(userEmail: string): Promise<GitHubI
     const response = await fetch(`${process.env.NEXTAUTH_URL}/api/integrations/github/user-issues`, {
       headers: {
         'X-User-Email': userEmail,
-        'X-Requesting-App': 'ai-admin-assistant'
+        'X-Requesting-App': 'mail-assistant'
       }
     });
 

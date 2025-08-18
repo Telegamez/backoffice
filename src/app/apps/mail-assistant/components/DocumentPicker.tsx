@@ -39,7 +39,7 @@ export default function DocumentPicker({ onDocumentSelect, selectedDocumentId }:
   const loadSharedDrives = async () => {
     setDrivesLoading(true);
     try {
-      const response = await fetch('/api/ai-admin-assistant/shared-drives');
+      const response = await fetch('/api/mail-assistant/shared-drives');
       const data = await response.json();
       
       if (data.success) {
@@ -71,7 +71,7 @@ export default function DocumentPicker({ onDocumentSelect, selectedDocumentId }:
         params.set('driveId', selectedDriveScope);
       }
       
-      const response = await fetch(`/api/ai-admin-assistant/documents?${params}`);
+      const response = await fetch(`/api/mail-assistant/documents?${params}`);
       const data = await response.json();
       
       if (data.success) {

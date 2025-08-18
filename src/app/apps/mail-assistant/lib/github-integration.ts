@@ -28,7 +28,7 @@ export class AIAssistantGitHubIntegration {
       }>({
         capability: 'github.user_issues',
         userEmail,
-        requestingApp: 'ai-admin-assistant'
+        requestingApp: 'mail-assistant'
       });
 
       return result?.issues || [];
