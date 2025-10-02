@@ -489,6 +489,140 @@ export class DriveService {
     }
   }
 
+  // Create a Google Sheet
+  async createSheet(title: string, data: string[][]): Promise<{ id: string; webViewLink: string }> {
+    const startTime = Date.now();
+    try {
+      const sheets = await this.googleClient.getSheetsClient();
+
+      // Create a new spreadsheet
+      const createResponse = await sheets.spreadsheets.create({
+        requestBody: {
+          properties: {
+            title,
+          },
+          sheets: [{
+            properties: {
+              title: 'Sheet1',
+            },
+            data: [{
+              rowData: data.map(row => ({
+                values: row.map(cell => ({
+                  userEnteredValue: { stringValue: cell },
+                })),
+              })),
+            }],
+          }],
+        },
+      });
+
+      const spreadsheetId = createResponse.data.spreadsheetId!;
+      const webViewLink = createResponse.data.spreadsheetUrl!;
+
+      // Log successful creation
+      await db.insert(adminAssistantAudit).values({
+        userEmail: this.userEmail,
+        actionType: 'drive_write',
+        operation: 'create_sheet',
+        resourceId: spreadsheetId,
+        details: {
+          metadata: {
+            title,
+            rows: data.length,
+            columns: data[0]?.length || 0,
+          },
+        },
+        success: true,
+        responseTimeMs: Date.now() - startTime,
+      });
+
+      return { id: spreadsheetId, webViewLink };
+    } catch (error) {
+      await db.insert(adminAssistantAudit).values({
+        userEmail: this.userEmail,
+        actionType: 'drive_write',
+        operation: 'create_sheet',
+        details: {
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        },
+        success: false,
+        responseTimeMs: Date.now() - startTime,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
+  // Create a Google Doc
+  async createDoc(title: string, content: string): Promise<{ id: string; webViewLink: string }> {
+    const startTime = Date.now();
+    try {
+      const docs = await this.googleClient.getDocsClient();
+
+      // Create a new document
+      const createResponse = await docs.documents.create({
+        requestBody: {
+          title,
+        },
+      });
+
+      const documentId = createResponse.data.documentId!;
+
+      // Insert content
+      await docs.documents.batchUpdate({
+        documentId,
+        requestBody: {
+          requests: [{
+            insertText: {
+              location: { index: 1 },
+              text: content,
+            },
+          }],
+        },
+      });
+
+      // Get the web view link
+      const drive = await this.googleClient.getDriveClient();
+      const fileMetadata = await drive.files.get({
+        fileId: documentId,
+        fields: 'webViewLink',
+      });
+
+      const webViewLink = fileMetadata.data.webViewLink!;
+
+      // Log successful creation
+      await db.insert(adminAssistantAudit).values({
+        userEmail: this.userEmail,
+        actionType: 'drive_write',
+        operation: 'create_doc',
+        resourceId: documentId,
+        details: {
+          metadata: {
+            title,
+            contentLength: content.length,
+          },
+        },
+        success: true,
+        responseTimeMs: Date.now() - startTime,
+      });
+
+      return { id: documentId, webViewLink };
+    } catch (error) {
+      await db.insert(adminAssistantAudit).values({
+        userEmail: this.userEmail,
+        actionType: 'drive_write',
+        operation: 'create_doc',
+        details: {
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        },
+        success: false,
+        responseTimeMs: Date.now() - startTime,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
   // Test Drive API access
   async testAccess() {
     try {

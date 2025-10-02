@@ -15,9 +15,9 @@ interface ChatHistoryProps {
 
 const ChatHistory: React.FC<ChatHistoryProps> = ({ messages }) => {
   return (
-    <div className="flex-grow border rounded-md p-4 space-y-4 overflow-y-auto">
+    <div className="space-y-4">
       {messages.length === 0 ? (
-        <div className="text-center text-muted-foreground">
+        <div className="text-center text-muted-foreground py-8">
           Start the conversation by typing a message below.
         </div>
       ) : (

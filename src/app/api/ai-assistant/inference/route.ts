@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     `;
 
     const { text: answer } = await generateText({
-      model: openai('gpt-4o'), // Use a fast model for synchronous tasks
+      model: openai('gpt-5'),
       prompt,
     });
 

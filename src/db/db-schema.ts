@@ -156,6 +156,7 @@ export const adminAssistantWorkflows = pgTable('admin_assistant_workflows', {
   id: serial('id').primaryKey(),
   userEmail: varchar('user_email', { length: 255 }).notNull(),
   workflowType: varchar('workflow_type', { length: 255 }).notNull(),
+  sourceDocumentId: varchar('source_document_id', { length: 255 }),
   status: varchar('status', { length: 50 }).notNull(),
   configuration: jsonb('configuration'),
   createdAt: timestamp('created_at').defaultNow().notNull(),

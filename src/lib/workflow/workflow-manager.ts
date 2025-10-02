@@ -28,6 +28,11 @@ export class WorkflowManager {
     }
 
     // 3. Create workflow record in the database
+    // For email campaigns, set to PENDING_APPROVAL so user can review
+    const initialStatus = params.workflowType === WorkflowActionType.EMAIL_CAMPAIGN
+      ? WorkflowStatus.PENDING_APPROVAL
+      : WorkflowStatus.CREATED;
+
     const newWorkflow = await db
       .insert(adminAssistantWorkflows)
       .values({
@@ -35,28 +40,25 @@ export class WorkflowManager {
         workflowType: params.workflowType,
         sourceDocumentId: params.sourceDocumentId,
         configuration: params.configuration,
-        status: WorkflowStatus.CREATED,
+        status: initialStatus,
       })
       .returning();
-      
+
     if (newWorkflow.length === 0) {
       throw new Error('Failed to create workflow record in the database.');
     }
 
     const workflowId = newWorkflow[0].id;
-    
-    // 4. (Placeholder) Add the first job to the queue
-    // await addWorkflowJob({ workflowId, initialStep: '...' });
-    
-    console.log(`Workflow ${workflowId} created successfully.`);
+
+    console.log(`Workflow ${workflowId} created successfully with status ${initialStatus}.`);
 
     return {
       workflowId,
-      status: WorkflowStatus.CREATED,
+      status: initialStatus,
     };
   }
 
-  async approve(workflowId: number) {
+  async approve(workflowId: number, modifications?: { finalDrafts: Array<{ recipientEmail: string; subject: string; content: string }> }) {
     const workflow = await db
       .select()
       .from(adminAssistantWorkflows)
@@ -67,18 +69,61 @@ export class WorkflowManager {
       throw new Error(`Workflow with ID ${workflowId} not found.`);
     }
 
-    if (workflow[0].status !== WorkflowStatus.PENDING_APPROVAL) {
-      throw new Error(
-        `Workflow with ID ${workflowId} is not pending approval.`,
-      );
-    }
+    const workflowData = workflow[0];
 
+    // Update status to approved
     await db
       .update(adminAssistantWorkflows)
       .set({ status: WorkflowStatus.APPROVED })
       .where(eq(adminAssistantWorkflows.id, workflowId));
 
-    // TODO: Trigger the next step in the workflow
+    // Execute the workflow immediately (send emails)
+    if (workflowData.workflowType === WorkflowActionType.EMAIL_CAMPAIGN && modifications?.finalDrafts) {
+      const EmailSendAction = (await import('./actions/email-send-action')).EmailSendAction;
+      const sendAction = new EmailSendAction();
+
+      try {
+        await sendAction.execute(
+          {
+            workflowId,
+            userEmail: workflowData.userEmail,
+            sourceDocumentId: workflowData.sourceDocumentId,
+          },
+          workflowData.configuration,
+          { finalDrafts: modifications.finalDrafts }
+        );
+
+        // Update status to completed
+        await db
+          .update(adminAssistantWorkflows)
+          .set({ status: WorkflowStatus.COMPLETED })
+          .where(eq(adminAssistantWorkflows.id, workflowId));
+      } catch (error) {
+        // Update status to failed
+        await db
+          .update(adminAssistantWorkflows)
+          .set({ status: WorkflowStatus.FAILED })
+          .where(eq(adminAssistantWorkflows.id, workflowId));
+        throw error;
+      }
+    }
+  }
+
+  async reject(workflowId: number) {
+    const workflow = await db
+      .select()
+      .from(adminAssistantWorkflows)
+      .where(eq(adminAssistantWorkflows.id, workflowId))
+      .limit(1);
+
+    if (workflow.length === 0) {
+      throw new Error(`Workflow with ID ${workflowId} not found.`);
+    }
+
+    await db
+      .update(adminAssistantWorkflows)
+      .set({ status: WorkflowStatus.FAILED })
+      .where(eq(adminAssistantWorkflows.id, workflowId));
   }
 
   // Placeholder for starting the workflow (e.g., after approval)

@@ -20,6 +20,11 @@ export const actionRegistry = {
   },
 };
 
-// Example of how a future action would be registered:
-// import { EmailCampaignAction } from './actions/email-campaign-action';
-// actionRegistry.register(new EmailCampaignAction());
+// Register workflow actions
+import { EmailCampaignAction } from './actions/email-campaign-action';
+import { DriveSheetCreateAction } from './actions/drive-sheet-create-action';
+import { DriveDocCreateAction } from './actions/drive-doc-create-action';
+
+actionRegistry.register(new EmailCampaignAction());
+actionRegistry.register(new DriveSheetCreateAction());
+actionRegistry.register(new DriveDocCreateAction());

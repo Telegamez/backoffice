@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-// import { openai } from '@ai-sdk/openai';
-// import { generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
 import { z } from 'zod';
 
 // Define the schema based on the PRD's IntentDetectionResult interface
-/* const IntentDetectionResultSchema = z.object({
+const IntentDetectionResultSchema = z.object({
   mode: z.enum(['simple', 'workflow']),
   confidence: z.number(),
   inferredAction: z.string().optional(),
   parameters: z.record(z.unknown()),
   requiresClarification: z.boolean(),
-}); */
+});
 
 // Define the request body schema based on the PRD
 const IntentDetectionRequestSchema = z.object({
@@ -33,42 +33,46 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = IntentDetectionRequestSchema.parse(body);
 
-    /* const prompt = `
-      Based on the user's query and the document context, please classify the intent.
-      
-      User Query: "${validatedData.query}"
-      
-      Document Context:
-      - Document ID: ${validatedData.documentContext?.documentId}
-      - Document Type: ${validatedData.documentContext?.documentType}
-      - Content Preview: ${validatedData.documentContext?.contentPreview?.substring(0, 200) || 'Not provided'}
-      
-      Determine if this is a 'simple' query for direct information retrieval or a 'workflow' query that requires multiple steps (like creating an email campaign).
-      
-      Provide your analysis in the required structured format.
-    `; */
+    const prompt = `
+      Based on the user's query and the document context, classify the intent as either 'simple' or 'workflow'.
 
-    // For now, we'll use a mock response to avoid actual API calls during setup.
-    // In a real implementation, the following block would be uncommented.
-    /*
+      User Query: "${validatedData.query}"
+
+      Document Context:
+      - Document ID: ${validatedData.documentContext?.documentId || 'Not provided'}
+      - Document Type: ${validatedData.documentContext?.documentType || 'Not provided'}
+
+      Classification rules:
+      - 'simple': The user is asking a question that requires information retrieval or analysis from the document
+        Examples: "What are the emails?", "How many candidates?", "Summarize this document"
+
+      - 'workflow': The user wants to take ACTION on the document data, such as sending emails, creating Google Drive artifacts, or executing tasks
+        Examples:
+          * Email: "Send emails to...", "Email these candidates", "Create a campaign", "Contact these people"
+          * Sheets: "Create a spreadsheet", "Make a sheet", "Export to Google Sheets", "Create a table"
+          * Docs: "Create a document", "Make a doc", "Generate a Google Doc", "Write a summary doc"
+          * Slides: "Create a presentation", "Make slides", "Generate a deck"
+
+        Key indicators: "send", "email", "contact", "create", "make", "generate", "export", "sheet", "doc", "slide", "spreadsheet", "presentation"
+
+      If mode is 'workflow', set inferredAction based on the request:
+      - 'EMAIL_CAMPAIGN' for email-related actions
+      - 'CREATE_SHEET' for spreadsheet creation
+      - 'CREATE_DOC' for document creation
+      - 'CREATE_SLIDE' for presentation creation
+
+      Return your analysis in JSON format matching the schema.
+    `;
+
     const { object: intent } = await generateObject({
-      model: openai('gpt-5'), // or 'gpt-4o' as a fallback
+      model: openai('gpt-5'),
       schema: IntentDetectionResultSchema,
       prompt,
     });
-    */
-
-    // Mock response for initial implementation
-    const mockIntent = {
-      mode: 'simple',
-      confidence: 0.85,
-      parameters: { query: validatedData.query },
-      requiresClarification: false,
-    };
 
     return NextResponse.json({
       success: true,
-      result: mockIntent,
+      result: intent,
     });
 
   } catch (error) {

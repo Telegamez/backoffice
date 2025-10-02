@@ -36,9 +36,12 @@ export class GoogleAPIClient {
         email: process.env.GOOGLE_CLIENT_EMAIL,
         key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
         scopes: [
-          'https://www.googleapis.com/auth/drive.readonly',
+          'https://www.googleapis.com/auth/drive',
           'https://www.googleapis.com/auth/gmail.modify',
           'https://www.googleapis.com/auth/calendar.readonly',
+          'https://www.googleapis.com/auth/spreadsheets',
+          'https://www.googleapis.com/auth/documents',
+          'https://www.googleapis.com/auth/presentations',
         ],
         subject: this.userEmail, // Impersonate this user
       });
@@ -100,6 +103,21 @@ export class GoogleAPIClient {
   async getYouTubeClient() {
     const auth = await this.getAuthClient();
     return google.youtube({ version: 'v3', auth });
+  }
+
+  async getSheetsClient() {
+    const auth = await this.getAuthClient();
+    return google.sheets({ version: 'v4', auth });
+  }
+
+  async getDocsClient() {
+    const auth = await this.getAuthClient();
+    return google.docs({ version: 'v1', auth });
+  }
+
+  async getSlidesClient() {
+    const auth = await this.getAuthClient();
+    return google.slides({ version: 'v1', auth });
   }
 
   // Test authentication

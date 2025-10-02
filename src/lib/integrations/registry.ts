@@ -37,10 +37,15 @@ export class IntegrationRegistry {
           id: 'google.drive',
           providerId: 'google',
           name: 'Google Drive',
-          description: 'Access and analyze Google Drive documents',
+          description: 'Access and create Google Drive documents, sheets, and slides',
           dataTypes: ['document', 'file', 'folder'],
-          operations: ['read'],
-          requiredScopes: ['https://www.googleapis.com/auth/drive.readonly'],
+          operations: ['read', 'write'],
+          requiredScopes: [
+            'https://www.googleapis.com/auth/drive',
+            'https://www.googleapis.com/auth/spreadsheets',
+            'https://www.googleapis.com/auth/documents',
+            'https://www.googleapis.com/auth/presentations'
+          ],
           apiEndpoint: '/api/integrations/google/drive'
         },
         {

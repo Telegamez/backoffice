@@ -1,5 +1,5 @@
 import { GoogleAPIClient } from '../google-api';
-import { db } from '../db';
+import { db } from '@/db';
 import { adminAssistantAudit } from '@/db/db-schema';
 
 interface EmailRecipient {

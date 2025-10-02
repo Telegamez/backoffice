@@ -31,7 +31,12 @@ const DocumentSelector: React.FC<DocumentSelectorProps> = ({ onDocumentSelect })
       if (data.success) {
         setDocuments(data.documents);
       } else {
-        setError(data.message || 'Failed to load documents');
+        const errorMsg = data.message || data.error || 'Failed to load documents';
+        if (errorMsg.includes('OAuth') || errorMsg.includes('token')) {
+          setError('Please connect your Google account in Settings > Integrations to use this feature.');
+        } else {
+          setError(errorMsg);
+        }
       }
     } catch (err) {
       // console.error(err);
@@ -73,7 +78,17 @@ const DocumentSelector: React.FC<DocumentSelectorProps> = ({ onDocumentSelect })
             <p>Loading documents...</p>
           </div>
         ) : error ? (
-          <div className="p-6 text-center text-red-500">{error}</div>
+          <div className="p-6 text-center">
+            <p className="text-red-500 mb-3">{error}</p>
+            {error.includes('Integrations') && (
+              <a
+                href="/integrations"
+                className="text-blue-600 hover:underline text-sm"
+              >
+                Go to Integrations →
+              </a>
+            )}
+          </div>
         ) : (
           documents.map((doc) => (
             <div

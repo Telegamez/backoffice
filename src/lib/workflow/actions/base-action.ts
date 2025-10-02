@@ -19,6 +19,9 @@ export enum WorkflowActionType {
   EMAIL_CAMPAIGN = 'email_campaign',
   DOCUMENT_SUMMARY = 'document_summary',
   BULK_PERSONALIZATION = 'bulk_personalization',
+  CREATE_SHEET = 'create_sheet',
+  CREATE_DOC = 'create_doc',
+  CREATE_SLIDE = 'create_slide',
 }
 
 export interface WorkflowValidationResult {
