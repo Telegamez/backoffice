@@ -27,8 +27,9 @@ export async function POST(
 
     const workflowManager = new WorkflowManager();
 
+    let sendResults = null;
     if (approved) {
-      await workflowManager.approve(workflowId, modifications);
+      sendResults = await workflowManager.approve(workflowId, modifications);
     } else {
       await workflowManager.reject(workflowId);
     }
@@ -36,6 +37,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       message: `Workflow ${workflowId} ${approved ? 'approved and executed' : 'rejected'} successfully`,
+      sendResults,
     });
   } catch (error) {
     console.error('Error approving workflow:', error);

@@ -22,6 +22,7 @@ const EmailDraftSchema = z.object({
   recipient: z.string().email(),
   subject: z.string(),
   content: z.string(),
+  cc: z.string().optional(),
 });
 
 const ExpectedInputSchema = z.object({
@@ -51,7 +52,7 @@ export class EmailSendAction extends WorkflowAction {
     for (const draft of validatedInput.finalDrafts) {
       const result = await emailService.sendEmail(
         { email: draft.recipient },
-        { subject: draft.subject, body: draft.content }
+        { subject: draft.subject, body: draft.content, cc: draft.cc }
       );
       sendResults.push(result);
     }

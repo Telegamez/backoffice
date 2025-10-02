@@ -10,6 +10,7 @@ interface EmailRecipient {
 interface EmailContent {
   subject: string;
   body: string; // HTML body
+  cc?: string; // Optional CC email address
 }
 
 export class EmailService {
@@ -29,12 +30,20 @@ export class EmailService {
     const messageParts = [
       `From: ${this.userEmail}`,
       `To: ${to}`,
+    ];
+
+    if (content.cc) {
+      messageParts.push(`Cc: ${content.cc}`);
+    }
+
+    messageParts.push(
       'Content-Type: text/html; charset=utf-8',
       'MIME-Version: 1.0',
       `Subject: =?UTF-8?B?${subject}?=`,
       '',
-      utf8Body,
-    ];
+      utf8Body
+    );
+
     return Buffer.from(messageParts.join('\n')).toString('base64url');
   }
 

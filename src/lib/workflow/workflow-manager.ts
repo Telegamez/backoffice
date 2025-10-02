@@ -83,7 +83,7 @@ export class WorkflowManager {
       const sendAction = new EmailSendAction();
 
       try {
-        await sendAction.execute(
+        const result = await sendAction.execute(
           {
             workflowId,
             userEmail: workflowData.userEmail,
@@ -98,6 +98,8 @@ export class WorkflowManager {
           .update(adminAssistantWorkflows)
           .set({ status: WorkflowStatus.COMPLETED })
           .where(eq(adminAssistantWorkflows.id, workflowId));
+
+        return result.output;
       } catch (error) {
         // Update status to failed
         await db

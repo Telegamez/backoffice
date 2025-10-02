@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bot, FileText, Mail, Check, X } from 'lucide-react';
 import DocumentSelector, { DriveDocument } from './DocumentSelector';
 import { Input } from '@/components/ui/input';
@@ -27,7 +27,7 @@ interface InferenceState {
 interface WorkflowReviewState {
   type: 'workflow_review';
   workflowId: number;
-  drafts: Array<{ recipientEmail: string; subject: string; content: string }>;
+  drafts: Array<{ recipientEmail: string; subject: string; content: string; cc?: string }>;
 }
 
 interface ArtifactPreviewState {
@@ -50,7 +50,17 @@ interface WorkspaceProps {
 const Workspace: React.FC<WorkspaceProps> = ({ state }) => {
   const [drafts, setDrafts] = useState(state.type === 'workflow_review' ? state.drafts : []);
   const [isApproving, setIsApproving] = useState(false);
-  const [approvalStatus, setApprovalStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
+  const [approvalStatus, setApprovalStatus] = useState<'pending' | 'sending' | 'approved' | 'rejected'>('pending');
+  const [sendResults, setSendResults] = useState<{ totalSent?: number; totalFailed?: number } | null>(null);
+
+  // Update drafts when state changes
+  useEffect(() => {
+    if (state.type === 'workflow_review') {
+      setDrafts(state.drafts);
+      setApprovalStatus('pending');
+      setSendResults(null);
+    }
+  }, [state]);
 
   const handleDraftEdit = (index: number, field: 'subject' | 'content', value: string) => {
     const newDrafts = [...drafts];
@@ -61,15 +71,36 @@ const Workspace: React.FC<WorkspaceProps> = ({ state }) => {
   const handleApproval = async (approved: boolean) => {
     if (state.type !== 'workflow_review') return;
     setIsApproving(true);
+    setApprovalStatus('sending');
     try {
-      await fetch(`/api/ai-assistant/workflow/${state.workflowId}/approve`, {
+      // Convert recipientEmail to recipient for the email send action
+      const finalDrafts = drafts.map(draft => ({
+        recipient: draft.recipientEmail,
+        subject: draft.subject,
+        content: draft.content,
+        cc: draft.cc,
+      }));
+
+      const response = await fetch(`/api/ai-assistant/workflow/${state.workflowId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ approved, modifications: { finalDrafts: drafts } }),
+        body: JSON.stringify({ approved, modifications: { finalDrafts } }),
       });
-      setApprovalStatus(approved ? 'approved' : 'rejected');
+
+      const result = await response.json();
+
+      if (approved && result.success) {
+        setApprovalStatus('approved');
+        // Extract send results if available
+        if (result.sendResults) {
+          setSendResults(result.sendResults);
+        }
+      } else {
+        setApprovalStatus(approved ? 'approved' : 'rejected');
+      }
     } catch (error) {
       console.error('Approval failed:', error);
+      setApprovalStatus('pending');
     } finally {
       setIsApproving(false);
     }
@@ -166,9 +197,25 @@ const Workspace: React.FC<WorkspaceProps> = ({ state }) => {
                   <X className="h-4 w-4 mr-2" /> Reject
                 </Button>
               </div>
+            ) : approvalStatus === 'sending' ? (
+              <p className="font-semibold text-blue-600">
+                Sending emails...
+              </p>
+            ) : approvalStatus === 'approved' ? (
+              <div className="space-y-2">
+                <p className="font-semibold text-green-600">
+                  ✓ Campaign sent successfully!
+                </p>
+                {sendResults && (
+                  <p className="text-sm text-muted-foreground">
+                    Sent: {sendResults.totalSent || 0} emails
+                    {sendResults.totalFailed ? ` • Failed: ${sendResults.totalFailed}` : ''}
+                  </p>
+                )}
+              </div>
             ) : (
-              <p className={`font-semibold ${approvalStatus === 'approved' ? 'text-green-600' : 'text-red-600'}`}>
-                Campaign {approvalStatus}.
+              <p className="font-semibold text-red-600">
+                Campaign rejected.
               </p>
             )}
           </div>
