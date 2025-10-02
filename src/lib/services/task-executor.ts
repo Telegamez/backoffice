@@ -133,7 +133,7 @@ export class TaskExecutor {
         return this.executeSearchAction(action.operation, parameters, task.userEmail);
 
       case 'youtube':
-        return this.executeYouTubeAction(action.operation, parameters, task.userEmail);
+        return this.executeYouTubeAction(action.operation, parameters, task.userEmail, task);
 
       case 'llm':
         return this.executeLLMAction(action.operation, parameters, context, task);
@@ -354,7 +354,8 @@ export class TaskExecutor {
   private async executeYouTubeAction(
     operation: string,
     parameters: Record<string, unknown>,
-    userEmail: string
+    userEmail: string,
+    task: ScheduledTask
   ): Promise<unknown> {
     const youtubeService = new YouTubeService(userEmail);
 

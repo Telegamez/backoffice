@@ -261,14 +261,72 @@ export class TaskScheduler {
 
   /**
    * Calculate the next run time for a cron expression
-   * This is a simplified implementation - for production, use a proper cron parser
+   * Uses manual parsing of cron schedule with timezone support
    */
-  private calculateNextRun(): Date {
-    // For now, return a time 1 hour in the future
-    // TODO: Implement proper cron parsing using a library like 'cron-parser'
-    const nextRun = new Date();
-    nextRun.setHours(nextRun.getHours() + 1);
-    return nextRun;
+  private calculateNextRun(cronSchedule: string, timezone: string): Date {
+    try {
+      // Parse cron: minute hour dayOfMonth month dayOfWeek
+      const parts = cronSchedule.trim().split(/\s+/);
+      if (parts.length !== 5) {
+        throw new Error('Invalid cron format');
+      }
+
+      const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
+
+      // Get current time in the task's timezone
+      const now = new Date();
+      const nowInTz = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+
+      // Start with tomorrow at the scheduled time
+      let next = new Date(nowInTz);
+
+      // Set the scheduled time
+      const scheduleHour = parseInt(hour);
+      const scheduleMinute = parseInt(minute);
+
+      if (!isNaN(scheduleHour) && !isNaN(scheduleMinute)) {
+        next.setHours(scheduleHour, scheduleMinute, 0, 0);
+
+        // If the time has already passed today, move to tomorrow
+        if (next <= nowInTz) {
+          next.setDate(next.getDate() + 1);
+        }
+
+        // Handle dayOfWeek constraint (1-5 = Mon-Fri, etc.)
+        if (dayOfWeek !== '*') {
+          const allowedDays = dayOfWeek.split(',').map(d => {
+            if (d.includes('-')) {
+              const [start, end] = d.split('-').map(n => parseInt(n));
+              return Array.from({ length: end - start + 1 }, (_, i) => (start + i) % 7);
+            }
+            return [parseInt(d) % 7];
+          }).flat();
+
+          // Find next valid day
+          let daysToAdd = 0;
+          const maxAttempts = 7;
+          while (daysToAdd < maxAttempts) {
+            const checkDate = new Date(next);
+            checkDate.setDate(checkDate.getDate() + daysToAdd);
+            const dayNum = checkDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+
+            if (allowedDays.includes(dayNum)) {
+              next.setDate(next.getDate() + daysToAdd);
+              break;
+            }
+            daysToAdd++;
+          }
+        }
+      }
+
+      return next;
+    } catch (error) {
+      console.error('Error calculating next run:', error);
+      // Fallback: return tomorrow at the same time
+      const fallback = new Date();
+      fallback.setDate(fallback.getDate() + 1);
+      return fallback;
+    }
   }
 
   /**
