@@ -10,6 +10,7 @@ import {
   generateDailyBriefing,
 } from './email-templates';
 import { parseSmartDate, extractDataArray, detectContentType, autoFormatAsHtml } from './smart-resolver';
+import { TelegamezContextManager } from '@/lib/context/telegamez-context';
 
 type ScheduledTask = InferSelectModel<typeof scheduledTasks>;
 
@@ -551,9 +552,8 @@ export class TaskExecutor {
         };
       }
 
-      const { text } = await generateText({
-        model: openai('gpt-5'),
-        prompt: `Summarize the following calendar events in a ${tone} tone:
+      // Build prompt with optional Telegamez context
+      const basePrompt = `Summarize the following calendar events in a ${tone} tone:
 
 ${JSON.stringify(events, null, 2)}
 
@@ -563,7 +563,17 @@ Create a brief, actionable HTML summary highlighting:
 - Any preparation needed
 - Motivational insights for the day
 
-Return ONLY clean HTML (div/p/ul/li tags), no markdown.`,
+Return ONLY clean HTML (div/p/ul/li tags), no markdown.`;
+
+      const prompt = TelegamezContextManager.buildPromptWithContext(basePrompt, {
+        query: `calendar summary ${tone}`,
+        keywords: task.personalization?.keywords as string[] | undefined,
+        includeMinimal: true,
+      });
+
+      const { text } = await generateText({
+        model: openai('gpt-5'),
+        prompt,
         temperature: 0.7,
       });
 
@@ -605,9 +615,8 @@ Return ONLY clean HTML (div/p/ul/li tags), no markdown.`,
         }
       }
 
-      const { text } = await generateText({
-        model: openai('gpt-5'),
-        prompt: `You are composing content in a ${tone} tone. Create ${format === 'email_html' ? 'an HTML email' : 'formatted content'} using the following data:
+      // Build prompt with optional Telegamez context
+      const basePrompt = `You are composing content in a ${tone} tone. Create ${format === 'email_html' ? 'an HTML email' : 'formatted content'} using the following data:
 
 Current Date: ${context.today_long || context.date}
 Current Time: ${context.time}
@@ -636,7 +645,16 @@ ${hasMeetings ? `
 - Use proper HTML tags (no markdown)
 - Use the actual current date provided above, NOT template variables like {{today_long}}
 
-Return ONLY the HTML content, no markdown code blocks.`,
+Return ONLY the HTML content, no markdown code blocks.`;
+
+      const prompt = TelegamezContextManager.buildPromptWithContext(basePrompt, {
+        query: instructions || '',
+        keywords: task.personalization?.keywords as string[] | undefined,
+      });
+
+      const { text } = await generateText({
+        model: openai('gpt-5'),
+        prompt,
         temperature: 0.3, // Lower temperature for more deterministic output
       });
 
@@ -652,13 +670,22 @@ Return ONLY the HTML content, no markdown code blocks.`,
       const category = parameters.category || 'motivational';
       const limit = parameters.limit || 1;
 
-      const { text } = await generateText({
-        model: openai('gpt-5'),
-        prompt: `Generate ${limit} inspiring ${category} quote(s) for startup founders and entrepreneurs.
+      // Build prompt with optional Telegamez context
+      const basePrompt = `Generate ${limit} inspiring ${category} quote(s) for startup founders and entrepreneurs.
 
 Make it energetic, actionable, and focused on perseverance, innovation, and growth.
 Keep it concise (1-2 sentences max per quote).
-Do not include attribution or quotes marks, just the raw motivational message.`,
+Do not include attribution or quotes marks, just the raw motivational message.`;
+
+      const prompt = TelegamezContextManager.buildPromptWithContext(basePrompt, {
+        query: `generate ${category} quote`,
+        keywords: [category],
+        includeMinimal: true,
+      });
+
+      const { text } = await generateText({
+        model: openai('gpt-5'),
+        prompt,
         temperature: 0.8,
       });
 
