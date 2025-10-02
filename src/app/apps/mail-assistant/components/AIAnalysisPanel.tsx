@@ -72,7 +72,7 @@ export default function AIAnalysisPanel({ analysis }: AIAnalysisPanelProps) {
               <div>
                 <h4 className="font-semibold mb-2">Source</h4>
                 <div className="text-xs text-muted-foreground p-2 border rounded-md bg-muted">
-                  "{analysis.sources[0].excerpt}"
+                  &quot;{analysis.sources[0].excerpt}&quot;
                 </div>
               </div>
             )}

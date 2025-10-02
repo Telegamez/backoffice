@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db } from '@/db';
 import { segmentInsights } from '@/db/db-schema';
 import { eq, desc } from 'drizzle-orm';
 

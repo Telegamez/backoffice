@@ -62,6 +62,26 @@ export class IntegrationRegistry {
           operations: ['read'],
           requiredScopes: ['https://www.googleapis.com/auth/calendar.readonly'],
           apiEndpoint: '/api/integrations/google/calendar'
+        },
+        {
+          id: 'google.youtube',
+          providerId: 'google',
+          name: 'YouTube Data',
+          description: 'Search and access YouTube videos',
+          dataTypes: ['video', 'channel', 'playlist'],
+          operations: ['read'],
+          requiredScopes: ['https://www.googleapis.com/auth/youtube.readonly'],
+          apiEndpoint: '/api/integrations/google/youtube'
+        },
+        {
+          id: 'google.search',
+          providerId: 'google',
+          name: 'Google Search',
+          description: 'Web search using Google Custom Search API',
+          dataTypes: ['search_result'],
+          operations: ['read'],
+          requiredScopes: [],  // Uses API key, not OAuth
+          apiEndpoint: '/api/integrations/google/search'
         }
       ]
     });

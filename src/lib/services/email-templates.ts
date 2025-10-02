@@ -1,0 +1,419 @@
+/**
+ * Email template system for autonomous agent scheduler
+ * Provides HTML email templates with responsive design
+ */
+
+export interface EmailTemplateData {
+  title: string;
+  greeting?: string;
+  content: string;
+  footer?: string;
+  metadata?: {
+    taskName?: string;
+    executionTime?: Date;
+    sources?: string[];
+  };
+}
+
+/**
+ * Generate a responsive HTML email template
+ */
+export function generateEmailTemplate(data: EmailTemplateData): string {
+  const {
+    title,
+    greeting = 'Hello',
+    content,
+    footer,
+    metadata,
+  } = data;
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(title)}</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #f5f5f5;
+      color: #333333;
+      line-height: 1.6;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 20px auto;
+      background-color: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .email-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff;
+      padding: 30px 20px;
+      text-align: center;
+    }
+    .email-header h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    .email-body {
+      padding: 30px 20px;
+    }
+    .greeting {
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: #555555;
+    }
+    .content {
+      font-size: 15px;
+      color: #333333;
+    }
+    .content h2 {
+      font-size: 20px;
+      margin-top: 25px;
+      margin-bottom: 15px;
+      color: #222222;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 8px;
+    }
+    .content h3 {
+      font-size: 17px;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      color: #333333;
+    }
+    .content p {
+      margin: 12px 0;
+    }
+    .content ul, .content ol {
+      margin: 12px 0;
+      padding-left: 25px;
+    }
+    .content li {
+      margin: 8px 0;
+    }
+    .content a {
+      color: #667eea;
+      text-decoration: none;
+    }
+    .content a:hover {
+      text-decoration: underline;
+    }
+    .metadata {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+      font-size: 13px;
+      color: #666666;
+    }
+    .metadata-item {
+      margin: 6px 0;
+    }
+    .email-footer {
+      background-color: #f9f9f9;
+      padding: 20px;
+      text-align: center;
+      font-size: 13px;
+      color: #666666;
+      border-top: 1px solid #e0e0e0;
+    }
+    .email-footer a {
+      color: #667eea;
+      text-decoration: none;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-right: 6px;
+    }
+    .badge-source {
+      background-color: #e3f2fd;
+      color: #1976d2;
+    }
+    @media only screen and (max-width: 600px) {
+      .email-container {
+        margin: 0;
+        border-radius: 0;
+      }
+      .email-header {
+        padding: 20px 15px;
+      }
+      .email-body {
+        padding: 20px 15px;
+      }
+      .email-header h1 {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h1>${escapeHtml(title)}</h1>
+    </div>
+    <div class="email-body">
+      <div class="greeting">${escapeHtml(greeting)},</div>
+      <div class="content">
+        ${content}
+      </div>
+      ${metadata ? generateMetadataSection(metadata) : ''}
+    </div>
+    <div class="email-footer">
+      ${footer || getDefaultFooter()}
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+}
+
+/**
+ * Generate metadata section
+ */
+function generateMetadataSection(metadata: EmailTemplateData['metadata']): string {
+  const items: string[] = [];
+
+  if (metadata?.taskName) {
+    items.push(`<div class="metadata-item"><strong>Task:</strong> ${escapeHtml(metadata.taskName)}</div>`);
+  }
+
+  if (metadata?.executionTime) {
+    const timeStr = metadata.executionTime.toLocaleString('en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone: 'America/Los_Angeles',
+    });
+    items.push(`<div class="metadata-item"><strong>Generated:</strong> ${timeStr}</div>`);
+  }
+
+  if (metadata?.sources && metadata.sources.length > 0) {
+    const badges = metadata.sources
+      .map(source => `<span class="badge badge-source">${escapeHtml(source)}</span>`)
+      .join('');
+    items.push(`<div class="metadata-item"><strong>Sources:</strong> ${badges}</div>`);
+  }
+
+  if (items.length === 0) return '';
+
+  return `<div class="metadata">${items.join('')}</div>`;
+}
+
+/**
+ * Get default footer
+ */
+function getDefaultFooter(): string {
+  return `
+    <p>🤖 Generated by <strong>Autonomous Agent Scheduler</strong></p>
+    <p>
+      <a href="#">Manage Tasks</a> |
+      <a href="#">Unsubscribe</a>
+    </p>
+  `;
+}
+
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(text: string): string {
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  };
+  return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+/**
+ * Format calendar events as HTML
+ */
+export function formatCalendarEventsHtml(events: any[]): string {
+  if (events.length === 0) {
+    return '<p>No events scheduled.</p>';
+  }
+
+  const eventItems = events.map(event => {
+    const time = event.time || 'All day';
+    const title = escapeHtml(event.title || event.summary || 'Untitled');
+    const location = event.location ? `<br><small>📍 ${escapeHtml(event.location)}</small>` : '';
+
+    return `<li><strong>${time}</strong> - ${title}${location}</li>`;
+  }).join('');
+
+  return `
+    <h2>📅 Your Schedule</h2>
+    <ul>${eventItems}</ul>
+  `;
+}
+
+/**
+ * Format search results as HTML
+ */
+export function formatSearchResultsHtml(results: any[]): string {
+  if (results.length === 0) {
+    return '<p>No results found.</p>';
+  }
+
+  const resultItems = results.map(result => {
+    const title = escapeHtml(result.title || 'Untitled');
+    const snippet = escapeHtml(result.snippet || result.description || '');
+    const link = result.link || result.url || '#';
+    const source = result.source || result.displayLink || '';
+
+    return `
+      <li>
+        <a href="${escapeHtml(link)}" target="_blank"><strong>${title}</strong></a>
+        ${source ? `<span class="badge badge-source">${escapeHtml(source)}</span>` : ''}
+        <br><small>${snippet}</small>
+      </li>
+    `;
+  }).join('');
+
+  return `
+    <h2>🔍 Search Results</h2>
+    <ul>${resultItems}</ul>
+  `;
+}
+
+/**
+ * Format YouTube videos as HTML
+ */
+export function formatYouTubeVideosHtml(videos: any[]): string {
+  if (videos.length === 0) {
+    return '<p>No videos found.</p>';
+  }
+
+  const videoItems = videos.map(video => {
+    const title = escapeHtml(video.title || 'Untitled');
+    const channel = escapeHtml(video.channelTitle || video.channel || '');
+    const url = video.url || `https://youtube.com/watch?v=${video.id}`;
+    const views = video.viewCount ? ` • ${formatNumber(video.viewCount)} views` : '';
+
+    return `
+      <li>
+        <a href="${escapeHtml(url)}" target="_blank"><strong>${title}</strong></a>
+        <br><small>${channel}${views}</small>
+      </li>
+    `;
+  }).join('');
+
+  return `
+    <h2>🎥 YouTube Videos</h2>
+    <ul>${videoItems}</ul>
+  `;
+}
+
+/**
+ * Format large numbers with commas
+ */
+function formatNumber(num: string | number): string {
+  const n = typeof num === 'string' ? parseInt(num) : num;
+  return n.toLocaleString();
+}
+
+/**
+ * Generate daily briefing email
+ */
+export function generateDailyBriefing(data: {
+  calendarEvents?: unknown[];
+  searchResults?: unknown[];
+  youtubeVideos?: unknown[];
+  tone?: 'motivational' | 'professional' | 'casual';
+  keywords?: string[];
+}): string {
+  const { calendarEvents = [], searchResults = [], youtubeVideos = [], tone = 'professional', keywords = [] } = data;
+
+  const greeting = getGreetingByTone(tone);
+  const contentParts: string[] = [];
+
+  // Introduction
+  contentParts.push(getIntroByTone(tone));
+
+  // Calendar section
+  if (calendarEvents.length > 0) {
+    contentParts.push(formatCalendarEventsHtml(calendarEvents));
+  }
+
+  // Search results
+  if (searchResults.length > 0) {
+    contentParts.push(formatSearchResultsHtml(searchResults));
+  }
+
+  // YouTube videos
+  if (youtubeVideos.length > 0) {
+    contentParts.push(formatYouTubeVideosHtml(youtubeVideos));
+  }
+
+  // Closing
+  contentParts.push(getClosingByTone(tone));
+
+  return generateEmailTemplate({
+    title: 'Your Daily Briefing',
+    greeting,
+    content: contentParts.join('\n'),
+    metadata: {
+      executionTime: new Date(),
+      sources: [...new Set([
+        calendarEvents.length > 0 ? 'Google Calendar' : null,
+        searchResults.length > 0 ? 'Google Search' : null,
+        youtubeVideos.length > 0 ? 'YouTube' : null,
+      ].filter(Boolean) as string[])],
+    },
+  });
+}
+
+/**
+ * Get greeting by tone
+ */
+function getGreetingByTone(tone: string): string {
+  switch (tone) {
+    case 'motivational':
+      return 'Good morning, champion! 🌟';
+    case 'casual':
+      return 'Hey there! 👋';
+    case 'professional':
+    default:
+      return 'Good morning';
+  }
+}
+
+/**
+ * Get intro by tone
+ */
+function getIntroByTone(tone: string): string {
+  switch (tone) {
+    case 'motivational':
+      return '<p>Get ready to crush today! Here\'s everything you need to know to make it amazing.</p>';
+    case 'casual':
+      return '<p>Here\'s what\'s happening today and what\'s trending in your world.</p>';
+    case 'professional':
+    default:
+      return '<p>Here is your daily briefing with your schedule and relevant updates.</p>';
+  }
+}
+
+/**
+ * Get closing by tone
+ */
+function getClosingByTone(tone: string): string {
+  switch (tone) {
+    case 'motivational':
+      return '<p><strong>Go make today count! 💪</strong></p>';
+    case 'casual':
+      return '<p>Have a great day! ✌️</p>';
+    case 'professional':
+    default:
+      return '<p>Best regards</p>';
+  }
+}

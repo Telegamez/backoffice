@@ -1,4 +1,4 @@
-import { db } from '@/lib/db';
+import { db } from '@/db';
 import { userIntegrations } from '@/db/db-schema';
 import { eq, and } from 'drizzle-orm';
 import { encryptToken, decryptToken } from './crypto';
@@ -82,13 +82,13 @@ export class TokenManager {
       if (result.length === 0) return null;
 
       const integration = result[0];
-      
+
       // Check if token is expired
       if (integration.expiresAt && integration.expiresAt < new Date()) {
         // Try to refresh token
         const refreshed = await this.refreshToken(userEmail, providerId);
         if (!refreshed) return null;
-        
+
         // Get the updated token
         return this.getProviderToken(userEmail, providerId);
       }
@@ -100,13 +100,60 @@ export class TokenManager {
       return credentials.access_token;
     } catch (error) {
       console.error('Error getting provider token:', error);
-      
+
       // If decryption fails, remove the corrupted integration entry
       if (error instanceof Error && error.message?.includes('Failed to decrypt token')) {
         console.warn(`Removing corrupted integration for ${userEmail}:${providerId}`);
         await this.revokeProviderToken(userEmail, providerId);
       }
-      
+
+      return null;
+    }
+  }
+
+  async getProviderCredentials(userEmail: string, providerId: string): Promise<TokenCredentials | null> {
+    if (!db) return null;
+
+    try {
+      const result = await db
+        .select()
+        .from(userIntegrations)
+        .where(
+          and(
+            eq(userIntegrations.userEmail, userEmail),
+            eq(userIntegrations.providerId, providerId)
+          )
+        )
+        .limit(1);
+
+      if (result.length === 0) return null;
+
+      const integration = result[0];
+
+      // Check if token is expired
+      if (integration.expiresAt && integration.expiresAt < new Date()) {
+        // Try to refresh token
+        const refreshed = await this.refreshToken(userEmail, providerId);
+        if (!refreshed) return null;
+
+        // Get the updated credentials after refresh
+        return this.getProviderCredentials(userEmail, providerId);
+      }
+
+      const credentials: TokenCredentials = JSON.parse(
+        decryptToken(integration.credentialsEncrypted)
+      );
+
+      return credentials;
+    } catch (error) {
+      console.error('Error getting provider credentials:', error);
+
+      // If decryption fails, remove the corrupted integration entry
+      if (error instanceof Error && error.message?.includes('Failed to decrypt token')) {
+        console.warn(`Removing corrupted integration for ${userEmail}:${providerId}`);
+        await this.revokeProviderToken(userEmail, providerId);
+      }
+
       return null;
     }
   }

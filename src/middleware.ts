@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 // import { auth } from "@/lib/auth"; // Commented out to avoid Edge Runtime issues
 
 // Middleware to protect routes and enforce authentication
-export async function middleware(req: NextRequest) {
-  // Middleware disabled - auth handled at page level
+export function middleware(_req: NextRequest) {
+  // Your middleware logic goes here
   return NextResponse.next();
 }
 

@@ -112,6 +112,57 @@ export const applications: BackofficeApp[] = [
       ]
     }
   },
+  {
+    id: 'autonomous-agent',
+    name: 'Autonomous Agent Scheduler',
+    description: 'Natural language task scheduler with automated data collection and email delivery',
+    icon: 'Clock',
+    path: '/apps/autonomous-agent',
+    category: 'ai',
+    enabled: true,
+    services: {
+      api: ['google-calendar-api', 'gmail-api', 'youtube-api', 'google-search-api', 'openai-gpt'],
+      external: ['google-workspace-oauth']
+    },
+    integrations: {
+      required: [
+        {
+          capability: 'google.calendar',
+          purpose: 'Fetch calendar events for scheduled tasks',
+          fallback: 'disable',
+          priority: 'required'
+        },
+        {
+          capability: 'google.gmail',
+          purpose: 'Send scheduled email reports',
+          fallback: 'disable',
+          priority: 'required'
+        }
+      ],
+      optional: [
+        {
+          capability: 'google.youtube',
+          purpose: 'Search and collect YouTube videos',
+          fallback: 'limited',
+          priority: 'optional'
+        },
+        {
+          capability: 'google.search',
+          purpose: 'Web search for information gathering',
+          fallback: 'limited',
+          priority: 'optional'
+        }
+      ],
+      provides: [
+        {
+          capability: 'scheduler.tasks',
+          dataType: 'scheduled_task',
+          endpoint: '/api/autonomous-agent/tasks',
+          permissions: ['scheduler:read', 'scheduler:write']
+        }
+      ]
+    }
+  },
   // Future applications can be added here
   // {
   //   id: 'project-analytics',

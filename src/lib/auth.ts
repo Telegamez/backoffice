@@ -18,7 +18,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             // Enhanced scopes for Workspace integration
             'https://www.googleapis.com/auth/drive.readonly',
             'https://www.googleapis.com/auth/gmail.modify',
-            'https://www.googleapis.com/auth/calendar.readonly'
+            'https://www.googleapis.com/auth/calendar.readonly',
+            'https://www.googleapis.com/auth/youtube.readonly'
           ].join(' '),
           access_type: 'offline',
           prompt: 'consent'        // Force consent to get refresh token

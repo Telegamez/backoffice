@@ -50,8 +50,8 @@ export class GoogleAPIClient {
 
   private async getOAuthClient() {
     try {
-      const accessToken = await tokenManager.getProviderToken(this.userEmail, 'google');
-      if (!accessToken) {
+      const credentials = await tokenManager.getProviderCredentials(this.userEmail, 'google');
+      if (!credentials) {
         throw new Error('No Google OAuth tokens found for user');
       }
 
@@ -61,8 +61,9 @@ export class GoogleAPIClient {
       );
 
       oauth2Client.setCredentials({
-        access_token: accessToken,
-        // Note: refresh token handling would need additional token manager methods
+        access_token: credentials.access_token,
+        refresh_token: credentials.refresh_token,
+        token_type: credentials.token_type,
       });
 
       return oauth2Client;
@@ -94,6 +95,11 @@ export class GoogleAPIClient {
   async getCalendarClient() {
     const auth = await this.getAuthClient();
     return google.calendar({ version: 'v3', auth });
+  }
+
+  async getYouTubeClient() {
+    const auth = await this.getAuthClient();
+    return google.youtube({ version: 'v3', auth });
   }
 
   // Test authentication

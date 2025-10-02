@@ -12,6 +12,7 @@ A unified authentication and multi-app management system for Telegamez operation
 
 ### Applications
 - **🤖 AI Admin Assistant**: Document analysis and email automation with Google Workspace integration
+- **⚡ Autonomous Agent Scheduler**: Natural language cron scheduler for automated data collection and email delivery
 - **📊 GitHub Timeline**: Development timeline visualization with repository and issue tracking
 - **🔧 Integration Management**: Centralized OAuth provider management at `/integrations`
 
@@ -106,6 +107,16 @@ GITHUB_CLIENT_SECRET="your-github-client-secret"
 TOKEN_ENCRYPTION_KEY="64-character-hex-string"
 ```
 
+### Optional Variables (Autonomous Agent Scheduler)
+```env
+# OpenAI API (Required for natural language parsing)
+OPENAI_API_KEY="sk-your-openai-api-key"
+
+# Google Search API (Optional - for web search)
+GOOGLE_SEARCH_API_KEY="your-search-api-key"
+GOOGLE_SEARCH_ENGINE_ID="your-search-engine-id"
+```
+
 ### Generate Encryption Key
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
@@ -118,6 +129,13 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 - **Required**: Google Workspace (Drive, Gmail)
 - **Optional**: GitHub (includes development tasks in summaries)
 - **Features**: Document analysis, email generation, daily summaries
+
+### Autonomous Agent Scheduler (`/apps/autonomous-agent`)
+- **Purpose**: Automated recurring tasks with natural language scheduling
+- **Required**: Google Workspace (Calendar, Gmail)
+- **Optional**: Google Search API, YouTube Data API
+- **Features**: Natural language task creation, multi-source data collection (Calendar + Search + YouTube), AI-powered filtering and summarization, professional HTML email delivery, cron-based scheduling with timezone support
+- **Documentation**: [Quick Start Guide](AUTONOMOUS-AGENT-READY.md) | [Implementation Status](_docs/implementations/IMPLEMENTATION-COMPLETE.md)
 
 ### GitHub Timeline (`/apps/github-timeline`)
 - **Purpose**: Development timeline visualization

@@ -2,6 +2,7 @@ import { db } from '@/db';
 import { adminAssistantWorkflows } from '@/db/db-schema';
 import { WorkflowStatus, WorkflowActionType } from './actions/base-action';
 import { actionRegistry } from './action-registry';
+import { eq } from 'drizzle-orm';
 // Import your queue logic when it's ready
 // import { addWorkflowJob } from '@/lib/queues';
 
@@ -53,6 +54,31 @@ export class WorkflowManager {
       workflowId,
       status: WorkflowStatus.CREATED,
     };
+  }
+
+  async approve(workflowId: number) {
+    const workflow = await db
+      .select()
+      .from(adminAssistantWorkflows)
+      .where(eq(adminAssistantWorkflows.id, workflowId))
+      .limit(1);
+
+    if (workflow.length === 0) {
+      throw new Error(`Workflow with ID ${workflowId} not found.`);
+    }
+
+    if (workflow[0].status !== WorkflowStatus.PENDING_APPROVAL) {
+      throw new Error(
+        `Workflow with ID ${workflowId} is not pending approval.`,
+      );
+    }
+
+    await db
+      .update(adminAssistantWorkflows)
+      .set({ status: WorkflowStatus.APPROVED })
+      .where(eq(adminAssistantWorkflows.id, workflowId));
+
+    // TODO: Trigger the next step in the workflow
   }
 
   // Placeholder for starting the workflow (e.g., after approval)

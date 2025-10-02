@@ -14,7 +14,7 @@ const CandidateExtractionConfigSchema = z.object({
   // Add other configuration fields from the PRD as needed
 });
 
-type CandidateExtractionConfig = z.infer<typeof CandidateExtractionConfigSchema>;
+// type CandidateExtractionConfig = z.infer<typeof CandidateExtractionConfigSchema>;
 
 export class CandidateExtractionAction extends WorkflowAction {
   readonly actionType = WorkflowActionType.CANDIDATE_EXTRACTION;
@@ -23,7 +23,7 @@ export class CandidateExtractionAction extends WorkflowAction {
 
   async execute(
     context: WorkflowContext,
-    configuration: unknown
+    _configuration: unknown
   ): Promise<WorkflowStepResult> {
     console.log(`Executing candidate extraction for workflow ${context.workflowId}...`);
 
@@ -59,7 +59,7 @@ export class CandidateExtractionAction extends WorkflowAction {
     }
   }
 
-  async preview(context: WorkflowContext): Promise<PreviewResult> {
+  async preview(_context: WorkflowContext): Promise<PreviewResult> {
     return {
       summary: 'This action will scan the document and extract a list of potential candidates based on the configured criteria.',
       sampleOutput: {

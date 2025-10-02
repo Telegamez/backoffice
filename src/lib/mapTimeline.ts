@@ -1,5 +1,5 @@
-import { db } from '@/lib/db';
-import { githubIssues, githubPullRequests, timelineSegments } from '@/db/db-schema';
+import { db } from '@/db';
+import { timelineSegments, githubIssues, githubPullRequests } from '@/db/db-schema';
 import { and, gte, lte } from 'drizzle-orm';
 
 type Label = { name: string };

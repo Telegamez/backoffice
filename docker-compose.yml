@@ -9,12 +9,15 @@ services:
       POSTGRES_DB: telegamez
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+      PGPORT: 55432
     ports:
-      - "55432:5432"
+      - "127.0.0.1:55432:55432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+      - ./drizzle:/migrations:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -p 55432"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -23,13 +26,13 @@ services:
     image: redis:7-alpine
     container_name: telegamez_redis
     restart: unless-stopped
-    command: redis-server --maxmemory 4gb --maxmemory-policy allkeys-lru
+    command: redis-server --port 6380 --maxmemory 4gb --maxmemory-policy allkeys-lru
     ports:
-      - "127.0.0.1:6380:6379"
+      - "127.0.0.1:6380:6380"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-p", "6380", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -45,9 +48,9 @@ services:
     env_file:
       - .env.local
     environment:
-      DATABASE_URL: postgres://postgres:postgres@db:5432/telegamez
+      DATABASE_URL: postgres://postgres:postgres@db:55432/telegamez
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT: 6380
       PORT: 3100
       NODE_ENV: production
     ports:

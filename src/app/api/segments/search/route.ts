@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db } from '@/db';
 import { timelineSegments } from '@/db/db-schema';
 import { ilike, or, sql } from 'drizzle-orm';
 

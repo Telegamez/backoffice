@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { openai } from '@ai-sdk/openai';
-import { generateObject } from 'ai';
+// import { openai } from '@ai-sdk/openai';
+// import { generateObject } from 'ai';
 import { z } from 'zod';
 
 // Define the schema based on the PRD's IntentDetectionResult interface
-const IntentDetectionResultSchema = z.object({
+/* const IntentDetectionResultSchema = z.object({
   mode: z.enum(['simple', 'workflow']),
   confidence: z.number(),
   inferredAction: z.string().optional(),
   parameters: z.record(z.unknown()),
   requiresClarification: z.boolean(),
-});
+}); */
 
 // Define the request body schema based on the PRD
 const IntentDetectionRequestSchema = z.object({
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = IntentDetectionRequestSchema.parse(body);
 
-    const prompt = `
+    /* const prompt = `
       Based on the user's query and the document context, please classify the intent.
       
       User Query: "${validatedData.query}"
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       Determine if this is a 'simple' query for direct information retrieval or a 'workflow' query that requires multiple steps (like creating an email campaign).
       
       Provide your analysis in the required structured format.
-    `;
+    `; */
 
     // For now, we'll use a mock response to avoid actual API calls during setup.
     // In a real implementation, the following block would be uncommented.

@@ -14,7 +14,7 @@ const EmailGenerationConfigSchema = z.object({
   personalizationFields: z.array(z.string()).optional(),
 });
 
-type EmailGenerationConfig = z.infer<typeof EmailGenerationConfigSchema>;
+// type EmailGenerationConfig = z.infer<typeof EmailGenerationConfigSchema>;
 
 export class EmailGenerationAction extends WorkflowAction {
   readonly actionType = WorkflowActionType.EMAIL_GENERATION;
@@ -23,7 +23,7 @@ export class EmailGenerationAction extends WorkflowAction {
 
   async execute(
     context: WorkflowContext,
-    configuration: unknown
+    _configuration: unknown
   ): Promise<WorkflowStepResult> {
     console.log(`Executing email generation for workflow ${context.workflowId}...`);
 
@@ -59,7 +59,7 @@ export class EmailGenerationAction extends WorkflowAction {
     }
   }
 
-  async preview(context: WorkflowContext): Promise<PreviewResult> {
+  async preview(_context: WorkflowContext): Promise<PreviewResult> {
     return {
       summary: 'This action generates personalized draft emails for each extracted candidate using an AI model.',
       sampleOutput: {

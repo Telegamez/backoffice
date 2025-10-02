@@ -27,6 +27,9 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
 
+# Install postgresql-client for migrations
+RUN apk add --no-cache postgresql-client netcat-openbsd
+
 # Non-root user
 RUN addgroup -g 1001 -S nextjs && adduser -S nextjs -u 1001
 
@@ -35,12 +38,21 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/static ./.next/static
 
+# Copy migration files and drizzle config
+COPY --from=builder /app/drizzle ./drizzle
+COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
+
+# Copy entrypoint script
+COPY --chown=nextjs:nextjs scripts/docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 USER nextjs
 
 # The app listens on 3100 (see package.json); PORT is respected by Next standalone
 ENV PORT=3100
 EXPOSE 3100
 
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "server.js"]
 
 

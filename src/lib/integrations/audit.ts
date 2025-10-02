@@ -1,4 +1,4 @@
-import { db } from '@/lib/db';
+import { db } from '@/db/index';
 import { integrationUsage } from '@/db/db-schema';
 
 export interface IntegrationUsageLog {

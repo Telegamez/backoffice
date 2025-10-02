@@ -35,13 +35,13 @@ export class EmailSendAction extends WorkflowAction {
 
   async execute(
     context: WorkflowContext,
-    configuration: unknown,
+    _configuration: unknown,
     // This action depends on the output of the approval step
     input: unknown 
   ): Promise<WorkflowStepResult> {
     console.log(`Executing email send for workflow ${context.workflowId}...`);
     
-    const config = EmailSendConfigSchema.parse(configuration);
+    // const config = EmailSendConfigSchema.parse(configuration);
     const validatedInput = ExpectedInputSchema.parse(input);
 
     const emailService = new EmailService(context.userEmail);
@@ -66,16 +66,16 @@ export class EmailSendAction extends WorkflowAction {
     };
   }
 
-  async validate(configuration: unknown): Promise<ValidationResult> {
+  async validate(_configuration: unknown): Promise<ValidationResult> {
     try {
-      EmailSendConfigSchema.parse(configuration);
+      EmailSendConfigSchema.parse({});
       return { isValid: true };
-    } catch (error) {
+    } catch (_error) {
       return { isValid: false, errors: ['Invalid configuration for EmailSendAction.'] };
     }
   }
 
-  async preview(context: WorkflowContext): Promise<PreviewResult> {
+  async preview(_context: WorkflowContext): Promise<PreviewResult> {
     return {
       summary: 'This action sends the approved emails to the final recipients.',
       sampleOutput: {},

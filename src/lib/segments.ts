@@ -1,5 +1,7 @@
-import { db } from '@/lib/db';
+import { db } from '@/db';
 import { timelineSegments } from '@/db/db-schema';
+// import { asc, desc, eq } from 'drizzle-orm';
+// import { openai } from '@ai-sdk/openai';
 
 export type SegmentRow = typeof timelineSegments.$inferSelect;
 

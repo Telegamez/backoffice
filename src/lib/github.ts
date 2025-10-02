@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { db } from '@/lib/db';
-import { githubIssues, githubPullRequests } from '@/db/db-schema';
+import { db } from '@/db';
+import { githubIssues, githubPullRequests } from '../db/db-schema';
 import { eq } from 'drizzle-orm';
 
 export const GithubSyncInput = z.object({

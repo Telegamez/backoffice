@@ -94,7 +94,7 @@ export default function DocumentPicker({ onDocumentSelect, selectedDocumentId }:
 
   useEffect(() => {
     loadDocuments(searchQuery);
-  }, [selectedDriveScope]); // Re-load when drive scope changes
+  }, [selectedDriveScope, searchQuery, loadDocuments]); // Re-load when drive scope changes
 
   const handleSearch = () => {
     loadDocuments(searchQuery);

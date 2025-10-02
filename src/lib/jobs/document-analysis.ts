@@ -1,6 +1,6 @@
 import { documentAnalysisQueue, DocumentAnalysisJobData } from '../queues';
 import { DriveService } from '../services/drive-service';
-import { db } from '../db';
+import { db } from '@/db';
 import { adminAssistantAudit, adminAssistantAiCache } from '@/db/db-schema';
 import { and, eq, gt } from 'drizzle-orm';
 import { openai } from '@ai-sdk/openai';
@@ -45,16 +45,12 @@ async function getCachedAnalysis(
       .select()
       .from(adminAssistantAiCache)
       .where(
-        and(
-          eq(adminAssistantAiCache.resourceId, documentId),
-          eq(adminAssistantAiCache.inputHash, cacheKey),
-          gt(adminAssistantAiCache.expiresAt, new Date())
-        )
+        eq(adminAssistantAiCache.cacheKey, cacheKey)
       )
       .limit(1);
 
     if (cached.length > 0) {
-      return cached[0].result as DocumentAnalysisResult;
+      return cached[0].cacheValue as DocumentAnalysisResult;
     }
     
     return null;
@@ -90,25 +86,12 @@ async function saveAnalysisToCache(
     };
 
     await db.insert(adminAssistantAiCache).values({
-      resourceId: documentId,
-      resourceType: documentType,
-      inferenceType: 'document_analysis',
-      inputHash: cacheKey,
-      result: resultForDb,
-      aiModel,
-      confidence: result.confidence,
-      expiresAt,
+      cacheKey,
+      cacheValue: resultForDb,
     }).onConflictDoUpdate({
-      target: [
-        adminAssistantAiCache.resourceId,
-        adminAssistantAiCache.inferenceType,
-        adminAssistantAiCache.inputHash
-      ],
+      target: adminAssistantAiCache.cacheKey,
       set: {
-        result: resultForDb,
-        aiModel,
-        confidence: result.confidence,
-        expiresAt,
+        cacheValue: resultForDb,
       }
     });
   } catch (error) {
@@ -267,11 +250,10 @@ documentAnalysisQueue.process('analyze-document', async (job) => {
     // Log successful completion
     await db.insert(adminAssistantAudit).values({
       userEmail: data.userEmail,
-      actionType: 'ai_inference',
-      resourceId: data.documentId,
-      resourceType: document.mimeType,
-      operation: 'analyze',
+      action: 'document_analysis',
       details: {
+        documentId: data.documentId,
+        documentType: document.mimeType,
         fileName: document.name,
         processingTime: Date.now() - startTime,
         aiModel: modelUsed,
@@ -279,10 +261,10 @@ documentAnalysisQueue.process('analyze-document', async (job) => {
         metadata: {
           analysisTypes: data.analysisTypes,
           cached: !!cachedResult,
+          success: true,
+          responseTimeMs: Date.now() - startTime,
         },
       },
-      success: true,
-      responseTimeMs: Date.now() - startTime,
     });
 
     await job.progress(100);
@@ -305,21 +287,19 @@ documentAnalysisQueue.process('analyze-document', async (job) => {
     // Log failure
     await db.insert(adminAssistantAudit).values({
       userEmail: data.userEmail,
-      actionType: 'ai_inference',
-      resourceId: data.documentId,
-      resourceType: data.documentType,
-      operation: 'analyze',
+      action: 'document_analysis_failed',
       details: {
+        documentId: data.documentId,
+        documentType: data.documentType,
         fileName: data.documentName,
         errorMessage,
         processingTime: Date.now() - startTime,
         metadata: {
           analysisTypes: data.analysisTypes,
+          success: false,
+          responseTimeMs: Date.now() - startTime,
         },
       },
-      success: false,
-      responseTimeMs: Date.now() - startTime,
-      errorMessage,
     });
 
     throw error;

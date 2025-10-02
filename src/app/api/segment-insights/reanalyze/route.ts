@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { segmentInsights } from '@/db/db-schema';
+import { db } from '@/db';
+import { segmentInsights, /* timelineSegments */ } from '@/db/db-schema';
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
