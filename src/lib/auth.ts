@@ -22,7 +22,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             'https://www.googleapis.com/auth/presentations',
             'https://www.googleapis.com/auth/gmail.modify',
             'https://www.googleapis.com/auth/calendar.readonly',
-            'https://www.googleapis.com/auth/youtube.readonly'
+            'https://www.googleapis.com/auth/youtube.force-ssl'
           ].join(' '),
           access_type: 'offline',
           prompt: 'consent'        // Force consent to get refresh token

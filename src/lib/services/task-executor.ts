@@ -155,9 +155,17 @@ export class TaskExecutor {
 
     for (const [key, value] of Object.entries(parameters)) {
       if (typeof value === 'string') {
-        // Replace {{variable}} with context value
-        resolved[key] = value.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
-          const contextValue = context[varName];
+        // Replace {{variable}} or {{variable.property}} with context value
+        resolved[key] = value.replace(/\{\{([\w.]+)\}\}/g, (match, path) => {
+          // Support nested properties like "today_info.date"
+          const parts = path.split('.');
+          let contextValue: any = context[parts[0]];
+
+          // Navigate through nested properties
+          for (let i = 1; i < parts.length && contextValue !== undefined; i++) {
+            contextValue = contextValue[parts[i]];
+          }
+
           if (contextValue === undefined) {
             return match; // Keep placeholder if not found
           }
@@ -406,6 +414,63 @@ export class TaskExecutor {
       const maxResults = parameters.maxResults || parameters.limit || 10;
       const videos = await youtubeService.getRecentVideos(query, daysAgo, maxResults);
       return { videos };
+    }
+
+    if (operation === 'create_playlist') {
+      const title = parameters.title as string;
+      const description = parameters.description as string || '';
+      const privacyStatus = parameters.privacyStatus as 'private' | 'public' | 'unlisted' || 'private';
+      const videos = parameters.videos;
+
+      const playlist = await youtubeService.createPlaylist(title, description, privacyStatus);
+
+      // If videos are provided, add them to the playlist
+      if (videos) {
+        let videoIds: string[] = [];
+
+        // Handle different video formats
+        if (typeof videos === 'string') {
+          // Try to parse JSON string
+          try {
+            const parsed = JSON.parse(videos);
+            if (Array.isArray(parsed)) {
+              videoIds = parsed.map(v => typeof v === 'object' && v.id ? v.id : v).filter(Boolean);
+            }
+          } catch {
+            // Not JSON, might be a comma-separated list
+            videoIds = videos.split(',').map(v => v.trim()).filter(Boolean);
+          }
+        } else if (Array.isArray(videos)) {
+          // Extract IDs from video objects or use strings directly
+          videoIds = videos.map(v => typeof v === 'object' && v.id ? v.id : v).filter(Boolean);
+        }
+
+        if (videoIds.length > 0) {
+          await youtubeService.addVideosToPlaylist(playlist.id, videoIds);
+        }
+      }
+
+      return {
+        playlist: {
+          ...playlist,
+          url: `https://www.youtube.com/playlist?list=${playlist.id}`
+        }
+      };
+    }
+
+    if (operation === 'search_and_create_playlist') {
+      const query = parameters.query as string;
+      const playlistTitle = parameters.playlistTitle as string;
+      const playlistDescription = parameters.playlistDescription as string || '';
+      const maxResults = parameters.maxResults || parameters.limit || 10;
+
+      const result = await youtubeService.searchAndCreatePlaylist(
+        query,
+        playlistTitle,
+        playlistDescription,
+        maxResults as number
+      );
+      return result;
     }
 
     throw new Error(`Unknown youtube operation: ${operation}`);

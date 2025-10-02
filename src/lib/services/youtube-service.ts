@@ -23,6 +23,14 @@ export interface YouTubeSearchParams {
   publishedBefore?: Date;
 }
 
+export interface YouTubePlaylist {
+  id: string;
+  title: string;
+  description: string;
+  privacyStatus: 'private' | 'public' | 'unlisted';
+  itemCount?: number;
+}
+
 /**
  * YouTubeService integrates with YouTube Data API v3
  * Provides access to trending videos, search, and video details
@@ -190,6 +198,163 @@ export class YouTubeService {
       order: 'date',
       publishedAfter,
     });
+  }
+
+  /**
+   * Create a new playlist
+   */
+  async createPlaylist(
+    title: string,
+    description: string = '',
+    privacyStatus: 'private' | 'public' | 'unlisted' = 'private'
+  ): Promise<YouTubePlaylist> {
+    try {
+      const youtube = await this.googleClient.getYouTubeClient();
+
+      const response = await youtube.playlists.insert({
+        part: ['snippet', 'status'],
+        requestBody: {
+          snippet: {
+            title,
+            description,
+          },
+          status: {
+            privacyStatus,
+          },
+        },
+      });
+
+      const playlist = response.data;
+
+      // Log successful creation
+      if (db) {
+        await db.insert(adminAssistantAudit).values({
+          userEmail: this.userEmail,
+          actionType: 'youtube_write',
+          operation: 'create_playlist',
+          success: true,
+          details: {
+            playlistId: playlist.id,
+            title,
+            privacyStatus,
+          },
+        });
+      }
+
+      return {
+        id: playlist.id || '',
+        title: (playlist.snippet?.title as string) || title,
+        description: (playlist.snippet?.description as string) || description,
+        privacyStatus: (playlist.status?.privacyStatus as 'private' | 'public' | 'unlisted') || privacyStatus,
+      };
+    } catch (error) {
+      console.error('Failed to create playlist:', error);
+
+      if (db) {
+        await db.insert(adminAssistantAudit).values({
+          userEmail: this.userEmail,
+          actionType: 'youtube_write',
+          operation: 'create_playlist',
+          success: false,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          details: { title },
+        });
+      }
+
+      throw new Error(`Failed to create playlist: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Add videos to a playlist
+   */
+  async addVideosToPlaylist(playlistId: string, videoIds: string[]): Promise<void> {
+    try {
+      const youtube = await this.googleClient.getYouTubeClient();
+
+      // Add each video to the playlist
+      for (const videoId of videoIds) {
+        await youtube.playlistItems.insert({
+          part: ['snippet'],
+          requestBody: {
+            snippet: {
+              playlistId,
+              resourceId: {
+                kind: 'youtube#video',
+                videoId,
+              },
+            },
+          },
+        });
+      }
+
+      // Log successful addition
+      if (db) {
+        await db.insert(adminAssistantAudit).values({
+          userEmail: this.userEmail,
+          actionType: 'youtube_write',
+          operation: 'add_videos_to_playlist',
+          success: true,
+          details: {
+            playlistId,
+            videoCount: videoIds.length,
+            videoIds,
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Failed to add videos to playlist:', error);
+
+      if (db) {
+        await db.insert(adminAssistantAudit).values({
+          userEmail: this.userEmail,
+          actionType: 'youtube_write',
+          operation: 'add_videos_to_playlist',
+          success: false,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          details: {
+            playlistId,
+            videoCount: videoIds.length,
+          },
+        });
+      }
+
+      throw new Error(`Failed to add videos to playlist: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Search videos and create a private playlist with results
+   */
+  async searchAndCreatePlaylist(
+    query: string,
+    playlistTitle: string,
+    playlistDescription: string = '',
+    maxResults: number = 10
+  ): Promise<{ playlist: YouTubePlaylist; videos: YouTubeVideo[] }> {
+    try {
+      // Search for videos
+      const videos = await this.searchVideos({ query, maxResults });
+
+      if (videos.length === 0) {
+        throw new Error('No videos found for the search query');
+      }
+
+      // Create playlist
+      const playlist = await this.createPlaylist(
+        playlistTitle,
+        playlistDescription,
+        'private'
+      );
+
+      // Add videos to playlist
+      const videoIds = videos.map(v => v.id);
+      await this.addVideosToPlaylist(playlist.id, videoIds);
+
+      return { playlist, videos };
+    } catch (error) {
+      throw new Error(`Failed to search and create playlist: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   /**

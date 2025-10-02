@@ -135,7 +135,7 @@ export function TaskCreator({ onClose, onTaskCreated }: TaskCreatorProps) {
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="Example: Every morning at 7am, email me my calendar and trending AI news"
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black placeholder:text-gray-400"
                 />
               </div>
 
@@ -174,13 +174,13 @@ export function TaskCreator({ onClose, onTaskCreated }: TaskCreatorProps) {
               </div>
 
               <div className="mb-6">
-                <p className="text-sm text-gray-900 font-medium mb-2">Example prompts:</p>
+                <p className="text-sm text-black font-medium mb-2">Example prompts:</p>
                 <div className="space-y-2">
                   {examplePrompts.map((example, idx) => (
                     <button
                       key={idx}
                       onClick={() => setPrompt(example)}
-                      className="block w-full text-left text-sm text-gray-700 bg-gray-50 p-3 rounded hover:bg-gray-100 transition"
+                      className="block w-full text-left text-sm text-black bg-gray-50 p-3 rounded hover:bg-gray-100 transition"
                     >
                       {example}
                     </button>

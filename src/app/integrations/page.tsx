@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle, ExternalLink, Loader2, Settings, Clock, Users, ArrowLeft } from 'lucide-react';
+import { AlertCircle, CheckCircle, ExternalLink, Loader2, Settings, Clock, Users, Home } from 'lucide-react';
 
 interface ProviderStatus {
   providerId: string;
@@ -163,11 +163,11 @@ export default function IntegrationsPage() {
       <div className="flex items-center gap-4 mb-6">
         <Button
           variant="ghost"
-          onClick={() => window.history.back()}
+          onClick={() => window.location.href = '/'}
           className="gap-2"
+          title="Back to Home"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back
+          <Home className="h-4 w-4" />
         </Button>
       </div>
 

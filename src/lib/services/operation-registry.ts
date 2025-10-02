@@ -101,6 +101,20 @@ export const OPERATION_REGISTRY: OperationDefinition[] = [
     requiredParams: [],
     optionalParams: ['maxResults', 'limit', 'regionCode'],
   },
+  {
+    service: 'youtube',
+    operation: 'create_playlist',
+    description: 'Create a new YouTube playlist',
+    requiredParams: ['title'],
+    optionalParams: ['description', 'privacyStatus'],
+  },
+  {
+    service: 'youtube',
+    operation: 'search_and_create_playlist',
+    description: 'Search for videos and create a playlist with the results',
+    requiredParams: ['query', 'playlistTitle'],
+    optionalParams: ['playlistDescription', 'maxResults', 'limit'],
+  },
 
   // LLM operations
   {
