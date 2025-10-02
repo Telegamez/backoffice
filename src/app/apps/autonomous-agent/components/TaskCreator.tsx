@@ -127,7 +127,7 @@ export function TaskCreator({ onClose, onTaskCreated }: TaskCreatorProps) {
           {!preview ? (
             <>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Describe your task in natural language
                 </label>
                 <textarea
@@ -135,15 +135,15 @@ export function TaskCreator({ onClose, onTaskCreated }: TaskCreatorProps) {
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="Example: Every morning at 7am, email me my calendar and trending AI news"
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-500"
                 />
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Email Recipients (optional)
                 </label>
-                <p className="text-xs text-gray-500 mb-3">
+                <p className="text-xs text-gray-700 mb-3">
                   If not specified, emails will be sent from tele@telegames.ai to user@example.com
                 </p>
                 {recipients.map((recipient, index) => (
@@ -153,7 +153,7 @@ export function TaskCreator({ onClose, onTaskCreated }: TaskCreatorProps) {
                       value={recipient}
                       onChange={(e) => updateRecipient(index, e.target.value)}
                       placeholder="recipient@example.com"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-500"
                     />
                     {recipients.length > 1 && (
                       <button
@@ -174,13 +174,13 @@ export function TaskCreator({ onClose, onTaskCreated }: TaskCreatorProps) {
               </div>
 
               <div className="mb-6">
-                <p className="text-sm text-gray-600 mb-2">Example prompts:</p>
+                <p className="text-sm text-gray-900 font-medium mb-2">Example prompts:</p>
                 <div className="space-y-2">
                   {examplePrompts.map((example, idx) => (
                     <button
                       key={idx}
                       onClick={() => setPrompt(example)}
-                      className="block w-full text-left text-sm bg-gray-50 p-3 rounded hover:bg-gray-100 transition"
+                      className="block w-full text-left text-sm text-gray-700 bg-gray-50 p-3 rounded hover:bg-gray-100 transition"
                     >
                       {example}
                     </button>

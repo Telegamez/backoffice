@@ -24,6 +24,7 @@ export function TaskList({ userEmail }: { userEmail: string }) {
   const [loading, setLoading] = useState(true);
   const [showCreator, setShowCreator] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [executingTaskId, setExecutingTaskId] = useState<number | null>(null);
 
   useEffect(() => {
     loadTasks();
@@ -87,6 +88,7 @@ export function TaskList({ userEmail }: { userEmail: string }) {
   }
 
   async function executeTask(taskId: number) {
+    setExecutingTaskId(taskId);
     try {
       const response = await fetch(`/api/autonomous-agent/tasks/${taskId}/execute`, {
         method: 'POST',
@@ -100,6 +102,8 @@ export function TaskList({ userEmail }: { userEmail: string }) {
     } catch (error) {
       console.error('Failed to execute task:', error);
       alert('Failed to execute task');
+    } finally {
+      setExecutingTaskId(null);
     }
   }
 
@@ -227,9 +231,10 @@ export function TaskList({ userEmail }: { userEmail: string }) {
 
                       <button
                         onClick={() => executeTask(task.id)}
-                        className="px-3 py-1 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 transition"
+                        disabled={executingTaskId === task.id}
+                        className="px-3 py-1 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Run Now
+                        {executingTaskId === task.id ? 'Running...' : 'Run Now'}
                       </button>
                     </>
                   )}
