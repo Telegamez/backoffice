@@ -13,6 +13,7 @@ const UpdateTaskSchema = z.object({
   timezone: z.string().optional(),
   enabled: z.boolean().optional(),
   status: z.enum(['pending_approval', 'approved', 'disabled']).optional(),
+  recipients: z.array(z.string().email()).optional(),
 });
 
 /**
@@ -116,13 +117,37 @@ export async function PUT(
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
+    // Handle recipients update (update actions array)
+    let actionsToUpdate = existingTask.actions;
+    if (validation.data.recipients) {
+      // Update the 'to' field in gmail send actions
+      actionsToUpdate = existingTask.actions.map((action: any) => {
+        if (action.service === 'gmail' && action.operation === 'send') {
+          return {
+            ...action,
+            parameters: {
+              ...action.parameters,
+              to: validation.data.recipients,
+            },
+          };
+        }
+        return action;
+      });
+    }
+
     // Update task
+    const updateData: any = {
+      ...validation.data,
+      updatedAt: new Date(),
+    };
+    delete updateData.recipients; // Remove recipients from update data
+    if (validation.data.recipients) {
+      updateData.actions = actionsToUpdate;
+    }
+
     const [updatedTask] = await db
       .update(scheduledTasks)
-      .set({
-        ...validation.data,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(scheduledTasks.id, taskId))
       .returning();
 

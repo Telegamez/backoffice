@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { TaskCreator } from './TaskCreator';
+import { TaskEditor } from './TaskEditor';
 
 interface Task {
   id: number;
@@ -15,12 +16,14 @@ interface Task {
   lastRun: string | null;
   nextRun: string | null;
   createdAt: string;
+  actions: any[];
 }
 
 export function TaskList({ userEmail }: { userEmail: string }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreator, setShowCreator] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   useEffect(() => {
     loadTasks();
@@ -125,6 +128,17 @@ export function TaskList({ userEmail }: { userEmail: string }) {
         />
       )}
 
+      {editingTask && (
+        <TaskEditor
+          task={editingTask}
+          onClose={() => setEditingTask(null)}
+          onTaskUpdated={() => {
+            setEditingTask(null);
+            loadTasks();
+          }}
+        />
+      )}
+
       {tasks.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <p className="text-gray-600 mb-4">No tasks yet. Create your first task to get started!</p>
@@ -194,11 +208,18 @@ export function TaskList({ userEmail }: { userEmail: string }) {
                   {task.status === 'approved' && (
                     <>
                       <button
+                        onClick={() => setEditingTask(task)}
+                        className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                      >
+                        Edit
+                      </button>
+
+                      <button
                         onClick={() => toggleTask(task.id, !task.enabled)}
                         className={`px-3 py-1 text-sm rounded transition ${
                           task.enabled
                             ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-green-600 text-white hover:bg-green-700'
                         }`}
                       >
                         {task.enabled ? 'Disable' : 'Enable'}

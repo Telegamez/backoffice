@@ -209,6 +209,173 @@ export class SearchService {
   }
 
   /**
+   * Fetch top stories from Hacker News
+   */
+  async getHackerNewsTop(params?: { limit?: number; includeFields?: string[] }): Promise<Array<{
+    id: number;
+    title: string;
+    url?: string;
+    score: number;
+    time: number;
+    rank: number;
+  }>> {
+    const limit = params?.limit || 30;
+
+    try {
+      // Fetch top story IDs from Hacker News API
+      const topStoriesResponse = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json');
+      if (!topStoriesResponse.ok) {
+        throw new Error(`Hacker News API error: ${topStoriesResponse.status}`);
+      }
+
+      const storyIds: number[] = await topStoriesResponse.json();
+      const topStoryIds = storyIds.slice(0, limit);
+
+      // Fetch details for each story
+      const stories = await Promise.all(
+        topStoryIds.map(async (id, index) => {
+          try {
+            const storyResponse = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
+            if (!storyResponse.ok) {
+              return null;
+            }
+            const story = await storyResponse.json();
+
+            return {
+              id: story.id,
+              title: story.title,
+              url: story.url || `https://news.ycombinator.com/item?id=${story.id}`,
+              score: story.score || 0,
+              time: story.time,
+              rank: index + 1,
+            };
+          } catch (error) {
+            console.error(`Failed to fetch HN story ${id}:`, error);
+            return null;
+          }
+        })
+      );
+
+      // Filter out failed fetches
+      const validStories = stories.filter((s): s is NonNullable<typeof s> => s !== null);
+
+      // Log successful fetch
+      if (db) {
+        await db.insert(adminAssistantAudit).values({
+          userEmail: this.userEmail,
+          actionType: 'search_read',
+          operation: 'hacker_news_top',
+          success: true,
+          details: {
+            storyCount: validStories.length,
+            source: 'hacker_news',
+          },
+        });
+      }
+
+      return validStories;
+    } catch (error) {
+      console.error('Hacker News API error:', error);
+
+      if (db) {
+        await db.insert(adminAssistantAudit).values({
+          userEmail: this.userEmail,
+          actionType: 'search_read',
+          operation: 'hacker_news_top',
+          success: false,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          details: {
+            limit,
+          },
+        });
+      }
+
+      throw new Error(`Hacker News fetch failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Fetch content from web URLs
+   */
+  async fetchContent(params: {
+    items: string | Array<{ url?: string; [key: string]: unknown }>;
+    fields?: string[];
+    timeoutSec?: number;
+  }): Promise<Array<{ url: string; title?: string; content?: string; error?: string }>> {
+    const timeout = (params.timeoutSec || 10) * 1000;
+    const items = typeof params.items === 'string' ? [] : params.items;
+
+    const results = await Promise.all(
+      items.map(async (item) => {
+        const url = item.url;
+        if (!url) {
+          return { url: '', error: 'No URL provided' };
+        }
+
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+          const response = await fetch(url, {
+            signal: controller.signal,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; TelegamezBot/1.0)',
+            },
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            return { url, error: `HTTP ${response.status}` };
+          }
+
+          const html = await response.text();
+
+          // Simple HTML parsing - extract title and meta description
+          const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+          const title = titleMatch ? titleMatch[1].trim() : item.title || '';
+
+          // Extract text content (very basic - just get text between body tags)
+          const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+          let content = '';
+
+          if (bodyMatch) {
+            // Remove scripts and styles
+            content = bodyMatch[1]
+              .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+              .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .slice(0, 5000); // Limit to 5000 chars
+          }
+
+          return { url, title, content };
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          return { url, error: errorMsg };
+        }
+      })
+    );
+
+    // Log the fetch operation
+    if (db) {
+      await db.insert(adminAssistantAudit).values({
+        userEmail: this.userEmail,
+        actionType: 'search_read',
+        operation: 'fetch_content',
+        success: true,
+        details: {
+          urlCount: items.length,
+          successCount: results.filter(r => !r.error).length,
+        },
+      });
+    }
+
+    return results;
+  }
+
+  /**
    * Check if Search API is configured
    */
   isConfigured(): boolean {

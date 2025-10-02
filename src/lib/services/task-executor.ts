@@ -345,6 +345,21 @@ export class TaskExecutor {
       return { quotes };
     }
 
+    if (operation === 'hacker_news_top') {
+      const limit = parameters.limit || 30;
+      const includeFields = parameters.includeFields || ['id', 'title', 'url', 'score', 'time', 'rank'];
+      const stories = await searchService.getHackerNewsTop({ limit, includeFields });
+      return stories;
+    }
+
+    if (operation === 'fetch_content') {
+      const items = context[parameters.items as string] || parameters.items;
+      const fields = parameters.fields || ['url', 'title'];
+      const timeoutSec = parameters.timeoutSec || 10;
+      const contents = await searchService.fetchContent({ items, fields, timeoutSec });
+      return contents;
+    }
+
     throw new Error(`Unknown search operation: ${operation}`);
   }
 
@@ -588,6 +603,58 @@ Do not include attribution or quotes marks, just the raw motivational message.`,
       };
     }
 
+    if (operation === 'filter') {
+      // Filter items based on keywords/criteria
+      const inputs = parameters.inputs || [];
+      const filters = parameters.filters || {};
+      const keywords = filters.keywords || [];
+      const limit = parameters.limit || 10;
+      const orderBy = parameters.orderBy || 'rank';
+
+      // Use smart extractor to get data from any format
+      const allResults: unknown[] = [];
+      for (const inputName of inputs as string[]) {
+        if (context[inputName]) {
+          const extracted = extractDataArray(context[inputName]);
+          allResults.push(...extracted);
+        }
+      }
+
+      if (allResults.length === 0) {
+        return [];
+      }
+
+      // If keywords are provided, use AI to filter
+      if (keywords && keywords.length > 0) {
+        const { text } = await generateText({
+          model: openai('gpt-5'),
+          prompt: `Filter and return items that are relevant to these keywords: ${keywords.join(', ')}
+
+Data:
+${JSON.stringify(allResults, null, 2)}
+
+Return ONLY a JSON array of items that match the keywords. Keep the original structure. Order by "${orderBy}". Limit to ${limit} items.`,
+          temperature: 0.3,
+        });
+
+        // Parse JSON response
+        try {
+          const filtered = JSON.parse(text.trim());
+          return Array.isArray(filtered) ? filtered.slice(0, limit) : [];
+        } catch {
+          // Fallback: simple keyword matching in title
+          const filtered = allResults.filter((item: any) => {
+            const title = item?.title?.toLowerCase() || '';
+            return keywords.some((kw: string) => title.includes(kw.toLowerCase()));
+          });
+          return filtered.slice(0, limit);
+        }
+      }
+
+      // No keywords - just return first N items
+      return allResults.slice(0, limit);
+    }
+
     if (operation === 'filter_and_rank') {
       // Filter and rank results by relevance
       const inputs = parameters.inputs || [];
@@ -716,23 +783,80 @@ Return ONLY the HTML content, no markdown code blocks.`,
       const inputs = parameters.inputs || [];
       const tone = parameters.tone || 'professional';
       const style = parameters.style || 'concise';
-      const summaryLength = parameters.summary_length || '2-3 sentences';
+      const summaryLength = parameters.length || parameters.summary_length || '2-3 sentences';
+      const perItem = parameters.perItem || false;
+      const includeFields = parameters.includeFields || [];
+      const fallbackPolicy = parameters.fallbackPolicy || '';
 
       // Gather input data
-      const contextData: Record<string, unknown> = {};
+      const allData: unknown[] = [];
       for (const inputName of inputs as string[]) {
         if (context[inputName]) {
-          contextData[inputName] = context[inputName];
+          const extracted = extractDataArray(context[inputName]);
+          allData.push(...extracted);
         }
       }
 
+      // If perItem is true, summarize each item individually
+      if (perItem && allData.length > 0) {
+        const summarizedItems = await Promise.all(
+          allData.map(async (item: any) => {
+            // Create a copy with the fields to include
+            const itemCopy: any = {};
+            for (const field of includeFields) {
+              if (item[field] !== undefined) {
+                itemCopy[field] = item[field];
+              }
+            }
+
+            // Check if we have content to summarize
+            const hasContent = item.content && item.content.length > 0;
+
+            let summary = '';
+            if (hasContent) {
+              const { text } = await generateText({
+                model: openai('gpt-5'),
+                prompt: `Summarize the following article in ${summaryLength} using a ${tone} tone.
+
+Title: ${item.title || 'Unknown'}
+Content: ${item.content}
+
+Return ONLY the summary, nothing else.`,
+                temperature: 0.5,
+              });
+              summary = text.trim();
+            } else {
+              // Fallback: summarize from title only
+              const { text } = await generateText({
+                model: openai('gpt-5'),
+                prompt: `Create a brief ${summaryLength} summary for this Hacker News story based on its title:
+
+Title: ${item.title || 'Unknown'}
+
+${fallbackPolicy}
+
+Return ONLY the summary, nothing else.`,
+                temperature: 0.5,
+              });
+              summary = text.trim();
+            }
+
+            itemCopy.summary = summary;
+            return itemCopy;
+          })
+        );
+
+        return summarizedItems;
+      }
+
+      // Otherwise, create one overall summary
       const { text } = await generateText({
         model: openai('gpt-5'),
         prompt: `Summarize the following content in a ${tone} tone using ${style} style.
 Length: ${summaryLength}
 
 Data:
-${JSON.stringify(contextData, null, 2)}
+${JSON.stringify(allData, null, 2)}
 
 Create concise, informative summaries. Return only the summarized content.`,
         temperature: 0.5,
@@ -752,6 +876,7 @@ Create concise, informative summaries. Return only the summarized content.`,
       const title = parameters.title || 'Summary';
       const tone = parameters.tone || 'professional';
       const template = parameters.template || '';
+      const itemTemplate = parameters.itemTemplate || '';
       const includeLinks = parameters.include_links !== false;
 
       // Use smart extractor to get all data
@@ -761,6 +886,31 @@ Create concise, informative summaries. Return only the summarized content.`,
           const extracted = extractDataArray(context[inputName]);
           allData.push(...extracted);
         }
+      }
+
+      // If itemTemplate is provided, use simple template substitution
+      if (itemTemplate && allData.length > 0) {
+        // Replace {{date}} in title
+        const resolvedTitle = title.replace(/\{\{date\}\}/g, context.today_long || context.date || '');
+
+        // Format each item using the template
+        const itemsHtml = allData.map((item: any) => {
+          let html = itemTemplate;
+          // Replace all template variables
+          for (const [key, value] of Object.entries(item)) {
+            const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+            html = html.replace(regex, String(value || ''));
+          }
+          return html;
+        }).join('\n');
+
+        const fullHtml = `<h2>${resolvedTitle}</h2>\n${itemsHtml}`;
+
+        return {
+          content: fullHtml,
+          format,
+          contentType: 'items',
+        };
       }
 
       // Auto-detect content type and format

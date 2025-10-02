@@ -1,6 +1,7 @@
 import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
+import { validateAction, getSuggestedOperations, OPERATION_REGISTRY } from './operation-registry';
 
 /**
  * Schema for parsing natural language task prompts into structured task definitions
@@ -65,7 +66,23 @@ export class TaskParser {
    * Build the prompt for the LLM
    */
   private buildPrompt(userPrompt: string, userEmail?: string): string {
+    // Get list of available operations grouped by service
+    const operationsByService = OPERATION_REGISTRY.reduce((acc, op) => {
+      if (!acc[op.service]) acc[op.service] = [];
+      acc[op.service].push(op.operation);
+      return acc;
+    }, {} as Record<string, string[]>);
+
+    const availableOps = Object.entries(operationsByService)
+      .map(([service, ops]) => `  - ${service}: ${ops.join(', ')}`)
+      .join('\n');
+
     return `You are a task interpretation assistant. Parse the following user request into a structured scheduled task.
+
+IMPORTANT: You MUST ONLY use operations that are listed below. Do NOT invent new operations.
+
+Available Operations by Service:
+${availableOps}
 
 User Request: "${userPrompt}"
 
@@ -180,6 +197,21 @@ Parse the user request above and return a structured task definition.`;
     for (const action of actions) {
       if (!validServices.includes(action.service)) {
         throw new Error(`Unknown service: ${action.service}. Valid services: ${validServices.join(', ')}`);
+      }
+    }
+
+    // Validate operations exist in the registry
+    for (const action of actions) {
+      const validation = validateAction(action);
+      if (!validation.valid) {
+        const suggestions = getSuggestedOperations(action.service, action.operation);
+        const suggestionText = suggestions.length > 0
+          ? `\n\nAvailable operations for ${action.service}: ${suggestions.map(s => s.operation).join(', ')}`
+          : '\n\nConsider using web_search for search operations.';
+
+        throw new Error(
+          `${validation.errors.join(', ')}${suggestionText}`
+        );
       }
     }
   }
