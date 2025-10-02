@@ -197,7 +197,7 @@ const AssistantPage = () => {
   };
 
   return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden">
+    <div className="flex h-[calc(100vh-57px)] bg-background text-foreground overflow-hidden">
       {/* Left Panel: Dialogue */}
       <div className="w-1/2 border-r border-border flex flex-col h-full">
         {/* Header */}

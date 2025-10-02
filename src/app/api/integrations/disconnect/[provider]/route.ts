@@ -15,14 +15,6 @@ export async function POST(
 
     // provider already extracted from params above
 
-    // Prevent disconnecting Google as it's the primary auth provider
-    if (provider === 'google') {
-      return NextResponse.json(
-        { error: 'Cannot disconnect primary authentication provider' },
-        { status: 400 }
-      );
-    }
-
     // Get the token before revoking (for proper cleanup)
     const token = await tokenManager.getProviderToken(session.user.email, provider);
     
@@ -44,6 +36,11 @@ export async function POST(
             'Accept': 'application/vnd.github.v3+json'
           },
           body: JSON.stringify({ access_token: token })
+        });
+      } else if (provider === 'google') {
+        // Revoke Google token
+        await fetch(`https://oauth2.googleapis.com/revoke?token=${token}`, {
+          method: 'POST'
         });
       }
     } catch (revokeError) {

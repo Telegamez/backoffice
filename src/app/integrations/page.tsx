@@ -250,17 +250,18 @@ function ProviderCard({ provider, onConnect, onDisconnect, connecting }: Provide
             <Badge variant={provider.connected ? "default" : "destructive"}>
               {provider.connected ? "Connected" : "Not Connected"}
             </Badge>
-            
-            {provider.connected && !isGooglePrimary && (
+
+            {provider.connected && (
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => onDisconnect(provider.providerId)}
+                title={isGooglePrimary ? "Disconnect and reconnect to refresh scopes" : "Disconnect this integration"}
               >
-                Disconnect
+                {isGooglePrimary ? "Reconnect" : "Disconnect"}
               </Button>
             )}
-            
+
             {!provider.connected && (
               <Button
                 size="sm"
