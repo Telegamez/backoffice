@@ -273,53 +273,91 @@ export class TaskScheduler {
 
       const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
 
-      // Get current time in the task's timezone
-      const now = new Date();
-      const nowInTz = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
-
-      // Start with tomorrow at the scheduled time
-      let next = new Date(nowInTz);
-
-      // Set the scheduled time
       const scheduleHour = parseInt(hour);
       const scheduleMinute = parseInt(minute);
 
-      if (!isNaN(scheduleHour) && !isNaN(scheduleMinute)) {
-        next.setHours(scheduleHour, scheduleMinute, 0, 0);
+      if (isNaN(scheduleHour) || isNaN(scheduleMinute)) {
+        throw new Error('Invalid hour or minute in cron');
+      }
 
-        // If the time has already passed today, move to tomorrow
-        if (next <= nowInTz) {
-          next.setDate(next.getDate() + 1);
-        }
+      // Get current time
+      const now = new Date();
 
-        // Handle dayOfWeek constraint (1-5 = Mon-Fri, etc.)
-        if (dayOfWeek !== '*') {
-          const allowedDays = dayOfWeek.split(',').map(d => {
-            if (d.includes('-')) {
-              const [start, end] = d.split('-').map(n => parseInt(n));
-              return Array.from({ length: end - start + 1 }, (_, i) => (start + i) % 7);
-            }
-            return [parseInt(d) % 7];
-          }).flat();
+      // Get the current date/time components in the target timezone
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
 
-          // Find next valid day
-          let daysToAdd = 0;
-          const maxAttempts = 7;
-          while (daysToAdd < maxAttempts) {
-            const checkDate = new Date(next);
-            checkDate.setDate(checkDate.getDate() + daysToAdd);
-            const dayNum = checkDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+      const parts_now = formatter.formatToParts(now);
+      const nowTz = {
+        year: parseInt(parts_now.find(p => p.type === 'year')!.value),
+        month: parseInt(parts_now.find(p => p.type === 'month')!.value),
+        day: parseInt(parts_now.find(p => p.type === 'day')!.value),
+        hour: parseInt(parts_now.find(p => p.type === 'hour')!.value),
+        minute: parseInt(parts_now.find(p => p.type === 'minute')!.value),
+      };
 
-            if (allowedDays.includes(dayNum)) {
-              next.setDate(next.getDate() + daysToAdd);
-              break;
-            }
-            daysToAdd++;
+      // Start with today at the scheduled time
+      let candidateYear = nowTz.year;
+      let candidateMonth = nowTz.month;
+      let candidateDay = nowTz.day;
+
+      // Check if the scheduled time has already passed today
+      if (nowTz.hour > scheduleHour || (nowTz.hour === scheduleHour && nowTz.minute >= scheduleMinute)) {
+        // Move to tomorrow
+        const tomorrow = new Date(candidateYear, candidateMonth - 1, candidateDay + 1);
+        candidateYear = tomorrow.getFullYear();
+        candidateMonth = tomorrow.getMonth() + 1;
+        candidateDay = tomorrow.getDate();
+      }
+
+      // Handle dayOfWeek constraint (1-5 = Mon-Fri, etc.)
+      if (dayOfWeek !== '*') {
+        const allowedDays = dayOfWeek.split(',').map(d => {
+          if (d.includes('-')) {
+            const [start, end] = d.split('-').map(n => parseInt(n));
+            return Array.from({ length: end - start + 1 }, (_, i) => (start + i) % 7);
           }
+          return [parseInt(d) % 7];
+        }).flat();
+
+        // Find next valid day
+        let attempts = 0;
+        const maxAttempts = 7;
+        while (attempts < maxAttempts) {
+          const checkDate = new Date(candidateYear, candidateMonth - 1, candidateDay);
+          const dayNum = checkDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+
+          if (allowedDays.includes(dayNum)) {
+            break;
+          }
+
+          // Move to next day
+          checkDate.setDate(checkDate.getDate() + 1);
+          candidateYear = checkDate.getFullYear();
+          candidateMonth = checkDate.getMonth() + 1;
+          candidateDay = checkDate.getDate();
+          attempts++;
         }
       }
 
-      return next;
+      // Create a date string in the target timezone and parse it as UTC
+      // Format: YYYY-MM-DDTHH:mm:ss in target timezone
+      const tzDateStr = `${candidateYear}-${String(candidateMonth).padStart(2, '0')}-${String(candidateDay).padStart(2, '0')}T${String(scheduleHour).padStart(2, '0')}:${String(scheduleMinute).padStart(2, '0')}:00`;
+
+      // Parse this as if it's in the target timezone and convert to UTC
+      const nextRunLocal = new Date(tzDateStr);
+      const offsetMs = this.getTimezoneOffset(timezone, nextRunLocal);
+      const nextRunUTC = new Date(nextRunLocal.getTime() - offsetMs);
+
+      return nextRunUTC;
     } catch (error) {
       console.error('Error calculating next run:', error);
       // Fallback: return tomorrow at the same time
@@ -327,6 +365,16 @@ export class TaskScheduler {
       fallback.setDate(fallback.getDate() + 1);
       return fallback;
     }
+  }
+
+  /**
+   * Get timezone offset in milliseconds for a given date
+   */
+  private getTimezoneOffset(timezone: string, date: Date): number {
+    // Get the UTC timestamp
+    const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
+    const tzDate = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
+    return tzDate.getTime() - utcDate.getTime();
   }
 
   /**
