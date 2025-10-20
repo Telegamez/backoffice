@@ -21,7 +21,7 @@ export async function GET() {
 
   try {
     // Test Google API (using a dummy email)
-    const client = new GoogleAPIClient('health-check@telegamez.com');
+    const client = new GoogleAPIClient('health-check@telegames.ai');
     const authTest = await client.testAuthentication();
     health.googleApi = authTest.success;
   } catch (error) {

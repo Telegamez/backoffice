@@ -47,7 +47,7 @@ echo "Google OAuth: ${GOOGLE_CLIENT_ID:+CONFIGURED}"
 **Steps**:
 1. Open browser to: http://localhost:3101
 2. Click "Sign In" or visit: http://localhost:3101/api/auth/signin
-3. Sign in with your @telegamez.com Google account
+3. Sign in with your @telegames.ai Google account
 4. Navigate to: http://localhost:3101/apps/ai-admin-assistant
 
 **✅ Success Criteria**: 

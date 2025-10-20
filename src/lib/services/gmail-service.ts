@@ -19,6 +19,24 @@ export interface SentEmailResult {
   labelIds: string[];
 }
 
+export interface GmailMessage {
+  id: string;
+  threadId: string;
+  snippet: string;
+  from: string;
+  to: string;
+  subject: string;
+  date: string;
+  labels: string[];
+  internalDate: string;
+}
+
+export interface ListMessagesOptions {
+  maxResults?: number;
+  query?: string;
+  labelIds?: string[];
+}
+
 /**
  * GmailService integrates with Gmail API
  * Provides email sending capabilities from user's Gmail account
@@ -225,6 +243,116 @@ export class GmailService {
     lines.push('📧 Sent via Autonomous Agent Scheduler');
     lines.push('🤖 Generated with AI assistance');
     return lines.join('\n');
+  }
+
+  /**
+   * List messages from Gmail inbox
+   */
+  async listMessages(options: ListMessagesOptions = {}): Promise<GmailMessage[]> {
+    try {
+      const gmail = await this.googleClient.getGmailClient();
+
+      const {
+        maxResults = 50,
+        query = 'in:inbox',
+        labelIds,
+      } = options;
+
+      // List message IDs
+      const listResponse = await gmail.users.messages.list({
+        userId: 'me',
+        maxResults,
+        q: query,
+        labelIds,
+      });
+
+      const messages = listResponse.data.messages || [];
+
+      if (messages.length === 0) {
+        return [];
+      }
+
+      // Fetch full message details for each message
+      const fullMessages = await Promise.all(
+        messages.map(async (msg) => {
+          const messageDetails = await gmail.users.messages.get({
+            userId: 'me',
+            id: msg.id!,
+            format: 'metadata',
+            metadataHeaders: ['From', 'To', 'Subject', 'Date'],
+          });
+
+          const headers = messageDetails.data.payload?.headers || [];
+          const getHeader = (name: string) =>
+            headers.find(h => h.name?.toLowerCase() === name.toLowerCase())?.value || '';
+
+          return {
+            id: messageDetails.data.id || '',
+            threadId: messageDetails.data.threadId || '',
+            snippet: messageDetails.data.snippet || '',
+            from: getHeader('From'),
+            to: getHeader('To'),
+            subject: getHeader('Subject'),
+            date: getHeader('Date'),
+            labels: messageDetails.data.labelIds || [],
+            internalDate: messageDetails.data.internalDate || '',
+          };
+        })
+      );
+
+      // Log successful fetch
+      if (db) {
+        await db.insert(adminAssistantAudit).values({
+          userEmail: this.userEmail,
+          actionType: 'gmail_read',
+          operation: 'list_messages',
+          success: true,
+          details: {
+            query,
+            messageCount: fullMessages.length,
+          },
+        });
+      }
+
+      return fullMessages;
+    } catch (error) {
+      console.error('Failed to list messages:', error);
+
+      if (db) {
+        await db.insert(adminAssistantAudit).values({
+          userEmail: this.userEmail,
+          actionType: 'gmail_read',
+          operation: 'list_messages',
+          success: false,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          details: {
+            query: options.query,
+          },
+        });
+      }
+
+      throw new Error(`Failed to list messages: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Get unread messages from inbox
+   */
+  async getUnreadMessages(maxResults: number = 50): Promise<GmailMessage[]> {
+    return this.listMessages({
+      maxResults,
+      query: 'in:inbox is:unread',
+    });
+  }
+
+  /**
+   * Get recent inbox messages
+   */
+  async getRecentMessages(maxResults: number = 50): Promise<GmailMessage[]> {
+    return this.listMessages({
+      maxResults,
+      query: 'in:inbox',
+    });
   }
 
   /**

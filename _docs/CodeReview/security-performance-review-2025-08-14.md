@@ -37,7 +37,7 @@
 ## Positive Highlights
 
 - ✅ Excellent use of AES-256-GCM encryption for token storage in `crypto.ts`
-- ✅ Proper domain restriction enforcement in `auth.ts:38` (@telegamez.com only)
+- ✅ Proper domain restriction enforcement in `auth.ts:38` (@telegames.ai only)
 - ✅ Well-structured OAuth2 flow implementation with refresh token handling
 - ✅ Good separation of concerns between authentication and authorization
 - ✅ Comprehensive error handling with appropriate logging levels
@@ -49,7 +49,7 @@
 
 ### Authentication & Authorization
 **Score: B+**
-- Strong domain-based access control restricting access to @telegamez.com emails
+- Strong domain-based access control restricting access to @telegames.ai emails
 - Proper OAuth2 implementation with Google as primary provider
 - JWT-based session management with NextAuth.js
 - Good middleware protection for authenticated routes

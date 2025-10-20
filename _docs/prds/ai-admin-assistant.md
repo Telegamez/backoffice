@@ -302,7 +302,7 @@ The AI Admin Assistant is a specialized automation tool that fills the gaps in G
 ```
 
 **User Journey:**
-1. User logs into `https://backoffice.telegamez.com` with Google OAuth
+1. User logs into `https://backoffice.telegames.ai` with Google OAuth
 2. Application selector shows "AI Admin Assistant" in the AI category
 3. User clicks card → redirected to `/apps/ai-admin-assistant`
 4. First-time setup: Grant additional OAuth scopes for Drive/Gmail access

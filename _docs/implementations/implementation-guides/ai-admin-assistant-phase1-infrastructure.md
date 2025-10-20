@@ -486,7 +486,7 @@ describe('Redis Connection', () => {
 // Test Google API client
 describe('Google API Client', () => {
   it('should authenticate and list documents', async () => {
-    const driveService = new DriveService('test@telegamez.com');
+    const driveService = new DriveService('test@telegames.ai');
     const documents = await driveService.listDocuments();
     expect(Array.isArray(documents)).toBe(true);
   });
@@ -500,7 +500,7 @@ describe('Google API Client', () => {
 describe('Document Analysis Job', () => {
   it('should process document analysis job', async () => {
     const job = await documentAnalysisQueue.add('analyze-document', {
-      userEmail: 'test@telegamez.com',
+      userEmail: 'test@telegames.ai',
       documentId: 'test-doc-id',
       documentType: 'application/vnd.google-apps.document',
       analysisTypes: ['summary', 'key_points'],
@@ -541,7 +541,7 @@ export async function GET() {
 
   try {
     // Test Google API
-    const client = new GoogleAPIClient('test@telegamez.com');
+    const client = new GoogleAPIClient('test@telegames.ai');
     await client.getDriveClient();
     health.googleApi = true;
   } catch (error) {

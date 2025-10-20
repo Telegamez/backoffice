@@ -5,7 +5,7 @@ A unified authentication and multi-app management system for Telegamez operation
 ## 🚀 Features
 
 ### Multi-Provider Authentication
-- **Primary Authentication**: Google OAuth with @telegamez.com domain restriction
+- **Primary Authentication**: Google OAuth with @telegames.ai domain restriction
 - **Secondary Integrations**: GitHub, Discord, Slack, and unlimited OAuth providers
 - **Zero Redundancy**: Single authentication per provider across all applications
 - **Cross-App Data Sharing**: GitHub issues in AI Admin, Google Drive access across tools
@@ -27,7 +27,7 @@ A unified authentication and multi-app management system for Telegamez operation
 ```typescript
 // Primary Authentication (Required)
 Google OAuth → Login + Google Workspace access
-├── Domain restriction: @telegamez.com only
+├── Domain restriction: @telegames.ai only
 ├── Managed through NextAuth.js
 └── Provides: Drive, Gmail, Calendar access
 
@@ -47,7 +47,7 @@ Slack OAuth → Workspace access
 - **Authentication**: NextAuth.js with multi-provider OAuth
 - **Security**: AES-256-GCM token encryption with unified token management
 - **Integration**: Cross-app data sharing with audit logging
-- **Deployment**: Docker + nginx proxy at `https://backoffice.telegamez.com`
+- **Deployment**: Docker + nginx proxy at `https://backoffice.telegames.ai`
 
 ## 🚀 Quick Start
 
@@ -82,7 +82,7 @@ npm run db:migrate
 npm run dev
 ```
 
-Visit `http://localhost:3000` and sign in with your @telegamez.com Google account.
+Visit `http://localhost:3000` and sign in with your @telegames.ai Google account.
 
 ## 🔧 Environment Variables
 
@@ -153,7 +153,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 2. Create OAuth 2.0 credentials
 3. Add authorized redirect URI: `https://yourdomain.com/api/auth/callback/google`
 4. Enable APIs: Drive, Gmail, Calendar
-5. Configure domain restriction for @telegamez.com
+5. Configure domain restriction for @telegames.ai
 
 ### GitHub OAuth (Secondary)
 1. Go to GitHub Settings > Developer settings > OAuth Apps
@@ -200,7 +200,7 @@ The system supports unlimited secondary OAuth providers. See the complete guide:
 - **Audit Logging**: Complete trail of integration usage
 
 ### Access Control
-- **Domain Restriction**: Primary authentication limited to @telegamez.com
+- **Domain Restriction**: Primary authentication limited to @telegames.ai
 - **Scope Validation**: Real-time checking of OAuth permissions
 - **Provider Isolation**: Secondary providers don't affect primary authentication
 - **Secure Callbacks**: State validation and CSRF protection
@@ -210,7 +210,7 @@ The system supports unlimited secondary OAuth providers. See the complete guide:
 ### Environment Setup
 ```bash
 # Production environment variables
-NEXTAUTH_URL="https://backoffice.telegamez.com"
+NEXTAUTH_URL="https://backoffice.telegames.ai"
 DATABASE_URL="your-production-database-url"
 # ... other production configs
 ```
@@ -304,7 +304,7 @@ vercel deploy
 
 - **Documentation**: Comprehensive guides in `_docs/` directory
 - **Issues**: GitHub Issues for bug reports and feature requests
-- **Security**: Email security@telegamez.com for security issues
+- **Security**: Email security@telegames.ai for security issues
 
 ## 📄 License
 

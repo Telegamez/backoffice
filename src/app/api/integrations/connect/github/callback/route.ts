@@ -16,12 +16,12 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       const callbackUrl = '/integrations?error=' + encodeURIComponent(error);
-      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegamez.com'));
+      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegames.ai'));
     }
 
     if (!code) {
       const callbackUrl = '/integrations?error=no_code';
-      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegamez.com'));
+      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegames.ai'));
     }
 
     let parsedState;
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
       parsedState = JSON.parse(state || '{}');
     } catch {
       const callbackUrl = '/integrations?error=invalid_state';
-      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegamez.com'));
+      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegames.ai'));
     }
 
     // Exchange code for access token
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
 
     if (tokenData.error || !tokenData.access_token) {
       const callbackUrl = '/integrations?error=token_exchange_failed';
-      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegamez.com'));
+      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegames.ai'));
     }
 
     // Get user information to verify the connection
@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
 
     if (!userResponse.ok) {
       const callbackUrl = '/integrations?error=user_fetch_failed';
-      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegamez.com'));
+      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegames.ai'));
     }
 
     const userData = await userResponse.json();
@@ -82,11 +82,11 @@ export async function GET(req: NextRequest) {
     const callbackUrl = parsedState.callbackUrl || '/integrations';
     const successUrl = `${callbackUrl}?integration=github&status=connected&user=${encodeURIComponent(userData.login)}`;
     
-    return NextResponse.redirect(new URL(successUrl, 'https://backoffice.telegamez.com'));
+    return NextResponse.redirect(new URL(successUrl, 'https://backoffice.telegames.ai'));
 
   } catch (error) {
     console.error('GitHub callback error:', error);
     const callbackUrl = '/integrations?error=callback_failed';
-    return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegamez.com'));
+    return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegames.ai'));
   }
 }

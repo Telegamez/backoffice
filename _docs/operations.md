@@ -93,7 +93,7 @@ echo $NEXTAUTH_URL
 
 # Check OAuth redirect URI matches:
 # http://localhost:3100/api/auth/callback/google (dev)
-# https://backoffice.telegamez.com/api/auth/callback/google (prod)
+# https://backoffice.telegames.ai/api/auth/callback/google (prod)
 ```
 
 ### Application-Specific Issues
@@ -120,7 +120,7 @@ docker volume rm telegamez-pgdata
 
 ## Production Operations
 
-For production deployment at `https://backoffice.telegamez.com`:
+For production deployment at `https://backoffice.telegames.ai`:
 
 ```bash
 # Deploy new version

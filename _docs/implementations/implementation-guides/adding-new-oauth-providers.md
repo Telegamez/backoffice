@@ -15,7 +15,7 @@ This guide shows how to add new secondary OAuth providers to the unified authent
 ```typescript
 // Primary Authentication (Required - Cannot be disconnected)
 Google OAuth → Login + Google Workspace access
-├── Domain restriction: @telegamez.com
+├── Domain restriction: @telegames.ai
 ├── Managed by NextAuth.js
 ├── Required for platform access
 └── Provides: Drive, Gmail, Calendar access
@@ -136,7 +136,7 @@ export async function GET(req: NextRequest) {
     discordAuthUrl.searchParams.set('scope', 'identify guilds');
     
     // IMPORTANT: Use the correct callback URL for your domain
-    discordAuthUrl.searchParams.set('redirect_uri', `https://backoffice.telegamez.com/api/integrations/connect/discord/callback`);
+    discordAuthUrl.searchParams.set('redirect_uri', `https://backoffice.telegames.ai/api/integrations/connect/discord/callback`);
     
     // State for security and callback handling
     const state = JSON.stringify({
@@ -178,12 +178,12 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       const callbackUrl = '/integrations?error=' + encodeURIComponent(error);
-      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegamez.com'));
+      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegames.ai'));
     }
 
     if (!code) {
       const callbackUrl = '/integrations?error=no_code';
-      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegamez.com'));
+      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegames.ai'));
     }
 
     let parsedState;
@@ -191,7 +191,7 @@ export async function GET(req: NextRequest) {
       parsedState = JSON.parse(state || '{}');
     } catch {
       const callbackUrl = '/integrations?error=invalid_state';
-      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegamez.com'));
+      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegames.ai'));
     }
 
     // Exchange code for access token
@@ -205,7 +205,7 @@ export async function GET(req: NextRequest) {
         client_secret: process.env.DISCORD_CLIENT_SECRET!,
         grant_type: 'authorization_code',
         code,
-        redirect_uri: `https://backoffice.telegamez.com/api/integrations/connect/discord/callback`,
+        redirect_uri: `https://backoffice.telegames.ai/api/integrations/connect/discord/callback`,
       }),
     });
 
@@ -213,7 +213,7 @@ export async function GET(req: NextRequest) {
 
     if (tokenData.error || !tokenData.access_token) {
       const callbackUrl = '/integrations?error=token_exchange_failed';
-      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegamez.com'));
+      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegames.ai'));
     }
 
     // Get user information to verify the connection
@@ -225,7 +225,7 @@ export async function GET(req: NextRequest) {
 
     if (!userResponse.ok) {
       const callbackUrl = '/integrations?error=user_fetch_failed';
-      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegamez.com'));
+      return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegames.ai'));
     }
 
     const userData = await userResponse.json();
@@ -244,12 +244,12 @@ export async function GET(req: NextRequest) {
     const callbackUrl = parsedState.callbackUrl || '/integrations';
     const successUrl = `${callbackUrl}?integration=discord&status=connected&user=${encodeURIComponent(userData.username)}`;
     
-    return NextResponse.redirect(new URL(successUrl, 'https://backoffice.telegamez.com'));
+    return NextResponse.redirect(new URL(successUrl, 'https://backoffice.telegames.ai'));
 
   } catch (error) {
     console.error('Discord callback error:', error);
     const callbackUrl = '/integrations?error=callback_failed';
-    return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegamez.com'));
+    return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegames.ai'));
   }
 }
 ```
@@ -487,7 +487,7 @@ Client ID: [Copy this to your .env]
 Client Secret: [Copy this to your .env]
 
 Redirects:
-- https://backoffice.telegamez.com/api/integrations/connect/discord/callback
+- https://backoffice.telegames.ai/api/integrations/connect/discord/callback
 - http://localhost:3000/api/integrations/connect/discord/callback (for development)
 
 Scopes:
@@ -560,7 +560,7 @@ Always follow the established GitHub pattern:
 ```typescript
 // Always redirect errors to /integrations page
 const callbackUrl = '/integrations?error=' + encodeURIComponent(errorType);
-return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegamez.com'));
+return NextResponse.redirect(new URL(callbackUrl, 'https://backoffice.telegames.ai'));
 ```
 
 ### 3. State Management

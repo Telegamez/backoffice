@@ -20,7 +20,7 @@ DATABASE_URL=postgres://postgres:postgres@db:5432/telegamez
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 NEXTAUTH_SECRET=your_nextauth_secret
-NEXTAUTH_URL=https://backoffice.telegamez.com
+NEXTAUTH_URL=https://backoffice.telegames.ai
 
 # Application-specific
 GITHUB_TOKEN=your_github_token
@@ -67,7 +67,7 @@ docker exec telegamez-postgres pg_isready -U postgres
 
 ## Production Deployment
 
-The application is deployed at `https://backoffice.telegamez.com` behind an nginx reverse proxy that handles:
+The application is deployed at `https://backoffice.telegames.ai` behind an nginx reverse proxy that handles:
 
 - SSL termination with Let's Encrypt certificates
 - Request routing to the Next.js application
@@ -81,7 +81,7 @@ Ensure your nginx configuration includes:
 ```nginx
 server {
     listen 443 ssl;
-    server_name backoffice.telegamez.com;
+    server_name backoffice.telegames.ai;
     
     location / {
         proxy_pass http://localhost:3100;

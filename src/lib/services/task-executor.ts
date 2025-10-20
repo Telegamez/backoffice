@@ -299,6 +299,20 @@ export class TaskExecutor {
       };
     }
 
+    if (operation === 'list_messages') {
+      const maxResults = (parameters.maxResults as number) || 50;
+      const query = (parameters.query as string) || 'in:inbox';
+      const labelIds = parameters.labelIds as string[] | undefined;
+
+      const messages = await gmailService.listMessages({
+        maxResults,
+        query,
+        labelIds,
+      });
+
+      return messages;
+    }
+
     throw new Error(`Unknown gmail operation: ${operation}`);
   }
 
@@ -751,45 +765,146 @@ Return ONLY a JSON array of items that match the keywords. Keep the original str
       // Filter and rank results by relevance
       const inputs = parameters.inputs || [];
       const keywords = parameters.keywords || parameters.highlight_keywords || [];
-      const limit = parameters.limit || 10;
+      const filters = parameters.filters;
+      const ranking = parameters.ranking || {};
+      const notes = parameters.notes || '';
+      const limit = ranking.limit || parameters.limit || 20;
 
       // Use smart extractor to get data from any format
+      // inputs parameter is already resolved by resolveParameters - contains actual data arrays
+      // For email filtering, only process the first input (gmail_inbox data)
       const allResults: unknown[] = [];
-      for (const inputName of inputs as string[]) {
-        if (context[inputName]) {
-          const extracted = extractDataArray(context[inputName]);
+
+      if (inputs.length > 0) {
+        const firstInput = inputs[0];
+        // First input should be the email array
+        if (Array.isArray(firstInput)) {
+          allResults.push(...firstInput);
+        } else {
+          // Fallback: try to extract data
+          const extracted = extractDataArray(firstInput);
           allResults.push(...extracted);
         }
       }
 
+      console.log(`filter_and_rank: Processing ${allResults.length} emails from first input`);
+      if (allResults.length > 0) {
+        console.log(`filter_and_rank: First email sample:`, JSON.stringify(allResults[0]).slice(0, 300));
+      }
+
       if (allResults.length === 0) {
+        console.log(`filter_and_rank: No results to filter, returning empty`);
         return { results: [], count: 0 };
       }
 
-      // Use AI to filter and rank
+      // Pre-filter emails based on criteria before sending to LLM
+      console.log(`filter_and_rank: Starting pre-filter on ${allResults.length} emails`);
+
+      const filteredResults = allResults.filter((email: any) => {
+        const from = (email.from || '').toLowerCase();
+        const subject = (email.subject || '').toLowerCase();
+        const snippet = (email.snippet || '').toLowerCase();
+
+        // Exclude automated/system emails
+        const excludedPrefixes = [
+          'no-reply@',
+          'noreply@',
+          'do-not-reply@',
+          'notifications@',
+          'automated@',
+          'tele@telegames.ai',  // Daily briefing bot
+          'meetings-noreply@'
+        ];
+
+        for (const prefix of excludedPrefixes) {
+          if (from.includes(prefix)) {
+            console.log(`filter_and_rank: EXCLUDED (automated) - from="${email.from}"`);
+            return false;
+          }
+        }
+
+        // Only include emails from actual people at telegames.ai
+        // This catches lance@telegames.ai, matt@telegames.ai, etc.
+        if (from.includes('@telegames.ai')) {
+          console.log(`filter_and_rank: MATCH (telegamez person) - from="${email.from}", subject="${email.subject}"`);
+          return true;
+        }
+
+        // Also check for telegames mentions in subject/body (keyword match)
+        if (subject.includes('telegames') || snippet.includes('telegames')) {
+          console.log(`filter_and_rank: MATCH (keyword) - from="${email.from}", subject="${email.subject}"`);
+          return true;
+        }
+
+        // Check against calendar attendees if available
+        const calendarData = inputs.length > 1 ? inputs[1] : null;
+        if (calendarData && typeof calendarData === 'object' && 'events' in calendarData) {
+          const events = (calendarData as any).events || [];
+          for (const event of events) {
+            const attendees = event.attendees || [];
+            for (const attendee of attendees) {
+              if (from.includes(attendee.toLowerCase())) {
+                console.log(`filter_and_rank: MATCH (calendar attendee) - from="${email.from}"`);
+                return true;
+              }
+            }
+          }
+        }
+
+        return false;
+      });
+
+      console.log(`filter_and_rank: Filtered to ${filteredResults.length} emails`);
+
+      // If no results after filtering, return empty
+      if (filteredResults.length === 0) {
+        return { results: [], count: 0 };
+      }
+
+      // Build ranking instructions
+      let rankingInstructions = '';
+      if (ranking.weights) {
+        rankingInstructions = `
+Rank these emails by importance using these weights:
+- Recency (${ranking.weights.recency || 1}): More recent = higher priority
+- Keyword match (${ranking.weights.keyword_match || 2}): telegames mentions = higher
+- Calendar-linked (${ranking.weights.related_to_calendar || 2}): Sender in calendar = higher
+- Prior correspondence (${ranking.weights.prior_correspondence || 3}): @telegames.ai = highest
+`;
+      }
+
+      // Use AI to rank the filtered results
       const { text } = await generateText({
         model: openai('gpt-5'),
-        prompt: `You are analyzing search results and trends. Filter and rank the following items by relevance to these keywords: ${keywords.join(', ')}
+        prompt: `Rank these ${filteredResults.length} emails by importance for morning triage.
 
-Data:
-${JSON.stringify(allResults, null, 2)}
+${rankingInstructions}
 
-Return ONLY a JSON array of the top ${limit} most relevant items, maintaining their original structure but sorted by relevance. Focus on items related to: ${keywords.join(', ')}`,
-        temperature: 0.3,
+Emails to rank (all already match filter criteria):
+${JSON.stringify(filteredResults, null, 2)}
+
+Return the top ${Math.min(limit, filteredResults.length)} most important emails.
+
+Return ONLY valid JSON:
+{
+  "results": [array of top ${Math.min(limit, filteredResults.length)} email objects in priority order],
+  "count": <number>
+}`,
+        temperature: 0.1,
       });
 
       // Parse JSON response
       try {
         const ranked = JSON.parse(text.trim());
         return {
-          results: Array.isArray(ranked) ? ranked : [ranked],
-          count: Array.isArray(ranked) ? ranked.length : 1,
+          results: ranked.results || filteredResults.slice(0, limit),
+          count: ranked.count || Math.min(filteredResults.length, limit),
         };
       } catch {
-        // Fallback: return first N items
+        // Fallback: return filtered results
         return {
-          results: allResults.slice(0, limit),
-          count: Math.min(allResults.length, limit),
+          results: filteredResults.slice(0, limit),
+          count: Math.min(filteredResults.length, limit),
         };
       }
     }
@@ -1085,8 +1200,14 @@ Return ONLY the HTML content (no markdown code blocks).`,
         ? (youtubeVideosData as any).videos
         : [];
 
+      const prioritizedEmailsData = context.prioritized_emails;
+      const prioritizedEmails = (typeof prioritizedEmailsData === 'object' && prioritizedEmailsData !== null && 'results' in prioritizedEmailsData)
+        ? (prioritizedEmailsData as any).results
+        : [];
+
       console.log('filter_and_summarize: calendar events count:', calendarEvents.length);
       console.log('filter_and_summarize: calendar events data:', JSON.stringify(calendarEvents, null, 2));
+      console.log('filter_and_summarize: prioritized emails count:', prioritizedEmails.length);
 
       if (format === 'email_html') {
         // Generate HTML email using templates
@@ -1094,6 +1215,7 @@ Return ONLY the HTML content (no markdown code blocks).`,
           calendarEvents,
           searchResults,
           youtubeVideos,
+          prioritizedEmails,
           tone: tone as any,
           keywords,
         });

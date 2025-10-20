@@ -64,7 +64,7 @@ The application will be available at `http://localhost:3100`
 3. Enable the Google+ API
 4. Create OAuth 2.0 credentials
 5. Add authorized redirect URI: `http://localhost:3100/api/auth/callback/google`
-6. Restrict to your @telegamez.com domain in the OAuth consent screen
+6. Restrict to your @telegames.ai domain in the OAuth consent screen
 
 ## GitHub Token Setup
 

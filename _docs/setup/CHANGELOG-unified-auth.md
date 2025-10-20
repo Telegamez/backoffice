@@ -21,7 +21,7 @@ Major implementation of unified authentication architecture that eliminates prov
 ```typescript
 // Primary Authentication (Required)
 Google OAuth → Login + Google Workspace access
-├── Domain restriction: @telegamez.com only
+├── Domain restriction: @telegames.ai only
 ├── Managed through NextAuth.js
 ├── Cannot be disconnected without logout
 └── Provides: Drive, Gmail, Calendar access

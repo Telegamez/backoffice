@@ -73,7 +73,7 @@ The AI Admin Assistant addresses critical gaps in Google Workspace by providing 
 - **NextAuth v5**: Google Workspace OAuth with enhanced scopes (Drive, Gmail, Calendar)
 - **PKCE Flow**: Proper code verifier handling with secure cookie configuration
 - **Token Management**: Encrypted storage with automatic refresh and scope validation
-- **Domain Restrictions**: `@telegamez.com` email validation for access control
+- **Domain Restrictions**: `@telegames.ai` email validation for access control
 
 #### API Endpoints Operational
 - `/api/ai-admin-assistant/analyze` - Document analysis job creation
@@ -498,7 +498,7 @@ The AI Admin Assistant addresses critical gaps in Google Workspace by providing 
 - **Redirect Loop Resolution**: Fixed infinite redirect by removing custom pages config
 - **Enhanced Redirect Callback**: Smart handling to prevent authentication loops
 - **Session Management**: Proper token storage and refresh handling
-- **Domain Validation**: Maintained @telegamez.com email requirement
+- **Domain Validation**: Maintained @telegames.ai email requirement
 
 ## Infrastructure Requirements (Detailed)
 

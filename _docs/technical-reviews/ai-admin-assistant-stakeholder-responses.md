@@ -46,7 +46,7 @@ After reviewing the technical assessment, the following decisions have been made
 
 **Decisions:**
 - ✅ **Service Account Setup:** Implement Google Workspace service account for enterprise-grade access
-- ✅ **Domain-Wide Delegation:** Configure for seamless user impersonation within @telegamez.com domain
+- ✅ **Domain-Wide Delegation:** Configure for seamless user impersonation within @telegames.ai domain
 - ✅ **Quota Strategy:** Dedicated API project with appropriate quota allocations
 - ✅ **Security Review:** Accept 2-6 week timeline for Google OAuth security review
 

@@ -323,22 +323,52 @@ function formatNumber(num: string | number): string {
 }
 
 /**
+ * Format prioritized emails for HTML display
+ */
+function formatPrioritizedEmailsHtml(emails: unknown[]): string {
+  const emailItems = emails.map((email: any) => {
+    const from = email.from || 'Unknown';
+    const subject = email.subject || '(No subject)';
+    const snippet = email.snippet || '';
+    const date = email.date ? new Date(email.date).toLocaleDateString() : '';
+
+    return `<li>
+      <strong>From:</strong> ${from}<br/>
+      <strong>Subject:</strong> ${subject}<br/>
+      ${date ? `<strong>Date:</strong> ${date}<br/>` : ''}
+      ${snippet ? `<em>${snippet.slice(0, 150)}${snippet.length > 150 ? '...' : ''}</em>` : ''}
+    </li>`;
+  }).join('');
+
+  return `
+    <h2>📧 Priority Emails</h2>
+    <ul>${emailItems}</ul>
+  `;
+}
+
+/**
  * Generate daily briefing email
  */
 export function generateDailyBriefing(data: {
   calendarEvents?: unknown[];
   searchResults?: unknown[];
   youtubeVideos?: unknown[];
+  prioritizedEmails?: unknown[];
   tone?: 'motivational' | 'professional' | 'casual';
   keywords?: string[];
 }): string {
-  const { calendarEvents = [], searchResults = [], youtubeVideos = [], tone = 'professional', keywords = [] } = data;
+  const { calendarEvents = [], searchResults = [], youtubeVideos = [], prioritizedEmails = [], tone = 'professional', keywords = [] } = data;
 
   const greeting = getGreetingByTone(tone);
   const contentParts: string[] = [];
 
   // Introduction
   contentParts.push(getIntroByTone(tone));
+
+  // Prioritized emails section (show first - most important)
+  if (prioritizedEmails.length > 0) {
+    contentParts.push(formatPrioritizedEmailsHtml(prioritizedEmails));
+  }
 
   // Calendar section
   if (calendarEvents.length > 0) {

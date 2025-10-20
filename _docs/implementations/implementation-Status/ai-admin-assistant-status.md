@@ -208,7 +208,7 @@ The AI Admin Assistant is a specialized automation tool that provides AI-powered
 ### Implemented Security Measures
 - ✅ Comprehensive audit logging schema
 - ✅ OAuth token encryption
-- ✅ Domain-restricted authentication (@telegamez.com)
+- ✅ Domain-restricted authentication (@telegames.ai)
 - ✅ Database-level unique constraints
 
 ### Pending Security Requirements

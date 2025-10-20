@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
       callbackUrl,
       provider: 'github'
     }));
-    githubAuthUrl.searchParams.set('redirect_uri', `https://backoffice.telegamez.com/api/integrations/connect/github/callback`);
+    githubAuthUrl.searchParams.set('redirect_uri', `https://backoffice.telegames.ai/api/integrations/connect/github/callback`);
 
     return NextResponse.redirect(githubAuthUrl.toString());
 

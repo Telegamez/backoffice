@@ -4,11 +4,11 @@ This document explains how to use the unified authentication system implemented 
 
 ## Overview
 
-The unified authentication system eliminates provider-specific authentication redundancy and enables seamless cross-app integration sharing through a multi-provider architecture. Users authenticate with Google as their primary provider (with @telegamez.com domain restriction) and can optionally connect secondary providers like GitHub for enhanced functionality.
+The unified authentication system eliminates provider-specific authentication redundancy and enables seamless cross-app integration sharing through a multi-provider architecture. Users authenticate with Google as their primary provider (with @telegames.ai domain restriction) and can optionally connect secondary providers like GitHub for enhanced functionality.
 
 ## Multi-Provider Architecture
 
-- **Primary Authentication**: Google OAuth with @telegamez.com domain restriction for secure access
+- **Primary Authentication**: Google OAuth with @telegames.ai domain restriction for secure access
 - **Secondary Integrations**: Optional provider connections (GitHub, etc.) without affecting primary auth
 - **Unified Token Management**: Centralized, encrypted storage for all provider tokens
 - **Cross-App Data Sharing**: GitHub issues in AI Admin, Google Drive access across tools
@@ -39,7 +39,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 4. Create OAuth 2.0 credentials
 5. Add your domain to authorized origins
 6. Add your callback URL: `https://yourdomain.com/api/auth/callback/google`
-7. Configure domain restriction for @telegamez.com (recommended)
+7. Configure domain restriction for @telegames.ai (recommended)
 
 #### GitHub OAuth Setup (Secondary Integration)
 1. Go to GitHub Settings > Developer settings > OAuth Apps
@@ -231,7 +231,7 @@ Disconnects a secondary provider. Primary Google authentication cannot be discon
 ```
 GET /api/integrations/github/user-issues
 Headers: 
-  X-User-Email: user@telegamez.com
+  X-User-Email: user@telegames.ai
   X-Requesting-App: my-app-id
 ```
 
@@ -288,25 +288,25 @@ The system automatically handles:
 import { tokenManager } from '@/lib/integrations/token-manager';
 
 // Get token for a secondary provider (GitHub)
-const githubToken = await tokenManager.getProviderToken('user@telegamez.com', 'github');
+const githubToken = await tokenManager.getProviderToken('user@telegames.ai', 'github');
 // Returns null if token is corrupted/expired - user needs to reconnect
 
 // Get Google token (from primary authentication)
-const googleToken = await tokenManager.getProviderToken('user@telegamez.com', 'google');
+const googleToken = await tokenManager.getProviderToken('user@telegames.ai', 'google');
 
 // Check if user has required scopes for any provider
 const hasGoogleScopes = await tokenManager.hasRequiredScopes(
-  'user@telegamez.com', 
+  'user@telegames.ai', 
   'google', 
   ['https://www.googleapis.com/auth/drive.readonly']
 );
 
 // Get all user integrations (both primary and secondary)
-const statuses = await tokenManager.getUserIntegrationStatus('user@telegamez.com');
+const statuses = await tokenManager.getUserIntegrationStatus('user@telegames.ai');
 
 // Revoke secondary provider (primary Google cannot be revoked this way)
 // Note: Corrupted tokens are automatically removed when decryption fails
-await tokenManager.revokeProviderToken('user@telegamez.com', 'github');
+await tokenManager.revokeProviderToken('user@telegames.ai', 'github');
 ```
 
 ## Security Considerations
@@ -403,7 +403,7 @@ Users can manage all their integrations at `/integrations`:
 1. User signs in through main authentication
 2. Automatically grants Google Workspace access
 3. Cannot be disconnected without signing out entirely
-4. Domain restricted to @telegamez.com
+4. Domain restricted to @telegames.ai
 
 **GitHub (Secondary)**:
 1. User visits `/integrations` page
