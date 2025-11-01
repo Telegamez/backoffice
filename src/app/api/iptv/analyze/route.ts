@@ -2,13 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
-import OpenAI from 'openai';
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 export const maxDuration = 300; // 5 minutes
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -109,15 +106,13 @@ Languages present: ${[...new Set(channelData.channels.map((ch: any) => ch.Langua
 User request: ${prompt}`,
     });
 
-    // Call OpenAI
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
+    // Call AI using Vercel AI SDK
+    const { text: aiResponse } = await generateText({
+      model: openai('gpt-4'),
       messages,
       temperature: 0.7,
-      max_tokens: 4000,
+      maxTokens: 4000,
     });
-
-    const aiResponse = completion.choices[0]?.message?.content || '';
 
     // Try to parse as JSON operation
     let operationResult = null;
