@@ -80,6 +80,8 @@ export default function IPTVChannelsClient() {
   const [aiMessages, setAiMessages] = useState<Message[]>([]);
   const [aiPrompt, setAiPrompt] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [showJsonPreview, setShowJsonPreview] = useState(false);
+  const [jsonPreviewData, setJsonPreviewData] = useState<any>(null);
 
   const [currentJob, setCurrentJob] = useState<GenerationJob | null>(null);
   const [jobs, setJobs] = useState<GenerationJob[]>([]);
@@ -991,17 +993,70 @@ export default function IPTVChannelsClient() {
                           {channelFiles.find(f => f.filename === selectedFileForAI)?.channelCount || 0} channels
                         </p>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setSelectedFileForAI(null);
-                          setAiMessages([]);
-                        }}
-                      >
-                        Change File
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(`/api/iptv/download?file=${selectedFileForAI}`);
+                              if (!response.ok) throw new Error('Failed to load file');
+                              const data = await response.json();
+                              setJsonPreviewData(data);
+                              setShowJsonPreview(true);
+                            } catch (error) {
+                              alert('Failed to load file preview: ' + (error instanceof Error ? error.message : 'Unknown error'));
+                            }
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Preview
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setSelectedFileForAI(null);
+                            setAiMessages([]);
+                            setShowJsonPreview(false);
+                            setJsonPreviewData(null);
+                          }}
+                        >
+                          Change File
+                        </Button>
+                      </div>
                     </div>
+
+                    {/* JSON Preview Modal */}
+                    {showJsonPreview && jsonPreviewData && (
+                      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+                        <Card className="w-full max-w-4xl max-h-[90vh] flex flex-col">
+                          <div className="flex items-center justify-between p-4 border-b">
+                            <div>
+                              <h3 className="text-lg font-semibold">JSON Preview: {selectedFileForAI}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {jsonPreviewData.channels?.length || 0} channels
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setShowJsonPreview(false);
+                                setJsonPreviewData(null);
+                              }}
+                            >
+                              Close
+                            </Button>
+                          </div>
+                          <div className="flex-1 overflow-auto p-4">
+                            <pre className="text-xs bg-secondary p-4 rounded-md overflow-auto">
+                              {JSON.stringify(jsonPreviewData, null, 2)}
+                            </pre>
+                          </div>
+                        </Card>
+                      </div>
+                    )}
 
                     {/* Chat Messages */}
                     <div className="border rounded-md p-4 h-96 overflow-y-auto space-y-4">
