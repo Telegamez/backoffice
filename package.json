@@ -33,6 +33,7 @@
     "google-auth-library": "^10.2.1",
     "googleapis": "^156.0.0",
     "ioredis": "^5.7.0",
+    "iptv-checker": "^0.28.0",
     "lucide-react": "^0.539.0",
     "next": "15.4.6",
     "next-auth": "^5.0.0-beta.29",

@@ -163,6 +163,30 @@ export const applications: BackofficeApp[] = [
       ]
     }
   },
+  {
+    id: 'iptv-channels',
+    name: 'IPTV Channel Manager',
+    description: 'Generate and manage IPTV channel lists with validation and filtering',
+    icon: 'Tv',
+    path: '/apps/iptv-channels',
+    category: 'operations',
+    enabled: true,
+    services: {
+      api: ['iptv-generate', 'iptv-download'],
+    },
+    integrations: {
+      required: [],
+      optional: [],
+      provides: [
+        {
+          capability: 'iptv.channels',
+          dataType: 'iptv_channel',
+          endpoint: '/api/iptv/generate',
+          permissions: ['iptv:read', 'iptv:write']
+        }
+      ]
+    }
+  },
   // Future applications can be added here
   // {
   //   id: 'project-analytics',

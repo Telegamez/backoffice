@@ -46,6 +46,9 @@ COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
 COPY --chown=nextjs:nextjs scripts/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
+# Create IPTV output directory with proper permissions
+RUN mkdir -p /app/public/iptv-output && chown -R nextjs:nextjs /app/public/iptv-output
+
 USER nextjs
 
 # The app listens on 3100 (see package.json); PORT is respected by Next standalone

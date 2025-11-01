@@ -55,9 +55,12 @@ services:
       NODE_ENV: production
     ports:
       - "127.0.0.1:3100:3100"
+    volumes:
+      - iptv_output:/app/public/iptv-output
     restart: unless-stopped
 
 volumes:
   pgdata:
   redis_data:
+  iptv_output:
 

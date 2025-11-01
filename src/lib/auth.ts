@@ -72,12 +72,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ account, profile }) {
       try {
         if (account?.provider === "google") {
-          // Profile must exist, have a verified email, and match the required domain.
-          if (profile?.email_verified && profile.email?.endsWith("@telegames.ai")) {
+          // Profile must exist, have a verified email, and match the required domains.
+          const allowedDomains = ["@telegames.ai", "@telegamez.com"];
+          const isAllowedDomain = allowedDomains.some(domain => profile?.email?.endsWith(domain));
+
+          if (profile?.email_verified && isAllowedDomain) {
             console.log(`Successful sign-in for user: ${profile.email}`);
             return true;
           } else {
-            console.warn(`Sign-in attempt denied for user: ${profile?.email} (verified: ${profile?.email_verified}, domain match: ${profile?.email?.endsWith("@telegames.ai")})`);
+            console.warn(`Sign-in attempt denied for user: ${profile?.email} (verified: ${profile?.email_verified}, domain match: ${isAllowedDomain})`);
             return false;
           }
         }
