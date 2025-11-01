@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Download, Play, CheckCircle, XCircle, Loader2, Upload, Trash2, Eye, FileJson, Merge, Sparkles, Send } from 'lucide-react';
+import ValidationProgress from './components/ValidationProgress';
+import ValidationResults from './components/ValidationResults';
 
 interface Message {
   id: string;
@@ -64,6 +66,10 @@ export default function IPTVChannelsClient() {
   // Validation
   const [validationFile, setValidationFile] = useState<File | null>(null);
   const [validationProgress, setValidationProgress] = useState<number | null>(null);
+  const [validationStats, setValidationStats] = useState<any>(null);
+  const [validationInProgress, setValidationInProgress] = useState(false);
+  const [validationMode, setValidationMode] = useState<'upload' | 'existing'>('existing');
+  const [selectedValidationFile, setSelectedValidationFile] = useState<string | null>(null);
 
   // Merge
   const [mergeFiles, setMergeFiles] = useState<string[]>([]);
@@ -201,43 +207,92 @@ export default function IPTVChannelsClient() {
   };
 
   const handleValidateFile = async () => {
-    if (!validationFile) return;
+    if (validationMode === 'upload' && !validationFile) return;
+    if (validationMode === 'existing' && !selectedValidationFile) return;
 
+    setValidationInProgress(true);
     setValidationProgress(0);
+    setValidationStats(null);
+
     const formData = new FormData();
-    formData.append('file', validationFile);
+
+    if (validationMode === 'upload') {
+      formData.append('file', validationFile!);
+    } else {
+      formData.append('filename', selectedValidationFile!);
+    }
+
     formData.append('timeout', timeout.toString());
     formData.append('parallel', parallel.toString());
     formData.append('retry', retry.toString());
 
     try {
-      const response = await fetch('/api/iptv/validate', {
+      const response = await fetch('/api/iptv/validate-stream', {
         method: 'POST',
         body: formData
       });
 
       if (!response.ok) throw new Error('Validation failed');
+      if (!response.body) throw new Error('No response body');
 
-      const result = await response.json();
-      setValidationProgress(100);
+      // Read SSE stream
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-      const completedJob: GenerationJob = {
-        id: Date.now().toString(),
-        status: 'completed',
-        result: {
-          totalChannels: result.metadata.total_channels,
-          validChannels: result.metadata.validation.valid,
-          invalidChannels: result.metadata.validation.invalid,
-          outputFile: result.filename
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.type === 'start') {
+                setValidationStats(data);
+              } else if (data.type === 'progress') {
+                setValidationStats(data);
+                setValidationProgress(data.progress);
+              } else if (data.type === 'complete') {
+                setValidationStats(data);
+                setValidationProgress(100);
+                setValidationInProgress(false);
+
+                // Add to jobs
+                const completedJob: GenerationJob = {
+                  id: Date.now().toString(),
+                  status: 'completed',
+                  result: {
+                    totalChannels: data.valid + data.invalid,
+                    validChannels: data.valid,
+                    invalidChannels: data.invalid,
+                    outputFile: data.filename
+                  }
+                };
+                setJobs(prev => [completedJob, ...prev]);
+                loadChannelFiles();
+              }
+            } catch (e) {
+              console.error('Failed to parse SSE message:', e);
+            }
+          }
         }
-      };
-
-      setJobs(prev => [completedJob, ...prev]);
-      loadChannelFiles();
+      }
     } catch (error) {
       setValidationProgress(null);
+      setValidationInProgress(false);
+      setValidationStats(null);
       alert(error instanceof Error ? error.message : 'Validation failed');
     }
+  };
+
+  const handleValidationDownload = (filename: string) => {
+    handleDownload(filename);
   };
 
   const handleMergeFiles = async () => {
@@ -606,108 +661,193 @@ export default function IPTVChannelsClient() {
 
             {/* VALIDATE TAB */}
             <TabsContent value="validate" className="space-y-4">
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Validate Channel File</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Upload a channel JSON file to validate all streams and remove non-working channels.
-                </p>
+              {!validationInProgress && !validationStats && (
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Validate Channel File</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Validate all streams in a channel file and remove non-working channels.
+                  </p>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Upload Channel File
-                    </label>
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={(e) => setValidationFile(e.target.files?.[0] || null)}
-                      className="w-full px-3 py-2 border rounded-md"
-                    />
-                  </div>
-
-                  {validationFile && (
-                    <div className="p-3 bg-secondary rounded-md">
-                      <p className="text-sm font-medium">{validationFile.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatFileSize(validationFile.size)}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="space-y-3 pt-2 border-t">
-                    <h4 className="font-medium text-sm">Validation Settings</h4>
-
-                    <div>
-                      <label className="block text-sm mb-1">
-                        Timeout (seconds): {timeout}
-                      </label>
-                      <input
-                        type="range"
-                        min="5"
-                        max="30"
-                        value={timeout}
-                        onChange={(e) => setTimeout(parseInt(e.target.value))}
-                        className="w-full"
-                      />
+                  <div className="space-y-4">
+                    {/* Mode Selection */}
+                    <div className="flex gap-2 p-1 bg-secondary rounded-lg">
+                      <button
+                        onClick={() => {
+                          setValidationMode('existing');
+                          setValidationFile(null);
+                        }}
+                        className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                          validationMode === 'existing'
+                            ? 'bg-background shadow-sm'
+                            : 'hover:bg-background/50'
+                        }`}
+                      >
+                        Existing Files
+                      </button>
+                      <button
+                        onClick={() => {
+                          setValidationMode('upload');
+                          setSelectedValidationFile(null);
+                        }}
+                        className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                          validationMode === 'upload'
+                            ? 'bg-background shadow-sm'
+                            : 'hover:bg-background/50'
+                        }`}
+                      >
+                        Upload New
+                      </button>
                     </div>
 
-                    <div>
-                      <label className="block text-sm mb-1">
-                        Parallel checks: {parallel}
-                      </label>
-                      <input
-                        type="range"
-                        min="1"
-                        max="20"
-                        value={parallel}
-                        onChange={(e) => setParallel(parseInt(e.target.value))}
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm mb-1">
-                        Retry attempts: {retry}
-                      </label>
-                      <input
-                        type="range"
-                        min="1"
-                        max="5"
-                        value={retry}
-                        onChange={(e) => setRetry(parseInt(e.target.value))}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-
-                  <Button
-                    onClick={handleValidateFile}
-                    disabled={!validationFile || validationProgress !== null}
-                    className="w-full"
-                  >
-                    {validationProgress !== null ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Validating...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Validate Streams
-                      </>
+                    {/* Existing Files Mode */}
+                    {validationMode === 'existing' && (
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Select a file to validate ({channelFiles.length} available)
+                        </label>
+                        <div className="border rounded-md p-3 max-h-64 overflow-y-auto space-y-2">
+                          {channelFiles.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-4">
+                              No files available. Generate some channels first.
+                            </p>
+                          ) : (
+                            channelFiles.map((file) => (
+                              <div
+                                key={file.filename}
+                                onClick={() => setSelectedValidationFile(file.filename)}
+                                className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${
+                                  selectedValidationFile === file.filename
+                                    ? 'border-primary bg-primary/5'
+                                    : 'hover:bg-accent'
+                                }`}
+                              >
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-2">
+                                    <FileJson className="h-4 w-4 text-muted-foreground" />
+                                    <p className="text-sm font-medium">{file.filename}</p>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {file.channelCount} channels • {formatFileSize(file.size)}
+                                  </p>
+                                </div>
+                                {selectedValidationFile === file.filename && (
+                                  <CheckCircle className="h-5 w-5 text-primary" />
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
                     )}
-                  </Button>
 
-                  {validationProgress !== null && (
-                    <div className="w-full bg-secondary rounded-full h-2">
-                      <div
-                        className="bg-blue-500 h-2 rounded-full transition-all"
-                        style={{ width: `${validationProgress}%` }}
-                      />
+                    {/* Upload Mode */}
+                    {validationMode === 'upload' && (
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Upload Channel File
+                        </label>
+                        <input
+                          type="file"
+                          accept=".json"
+                          onChange={(e) => setValidationFile(e.target.files?.[0] || null)}
+                          className="w-full px-3 py-2 border rounded-md"
+                        />
+                        {validationFile && (
+                          <div className="p-3 bg-secondary rounded-md mt-2">
+                            <p className="text-sm font-medium">{validationFile.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatFileSize(validationFile.size)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="space-y-3 pt-2 border-t">
+                      <h4 className="font-medium text-sm">Validation Settings</h4>
+
+                      <div>
+                        <label className="block text-sm mb-1">
+                          Timeout (seconds): {timeout}
+                        </label>
+                        <input
+                          type="range"
+                          min="5"
+                          max="30"
+                          value={timeout}
+                          onChange={(e) => setTimeout(parseInt(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm mb-1">
+                          Parallel checks: {parallel}
+                        </label>
+                        <input
+                          type="range"
+                          min="1"
+                          max="20"
+                          value={parallel}
+                          onChange={(e) => setParallel(parseInt(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm mb-1">
+                          Retry attempts: {retry}
+                        </label>
+                        <input
+                          type="range"
+                          min="1"
+                          max="5"
+                          value={retry}
+                          onChange={(e) => setRetry(parseInt(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
                     </div>
-                  )}
+
+                    <Button
+                      onClick={handleValidateFile}
+                      disabled={
+                        (validationMode === 'upload' && !validationFile) ||
+                        (validationMode === 'existing' && !selectedValidationFile) ||
+                        validationInProgress
+                      }
+                      className="w-full"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Validate Streams
+                    </Button>
+                  </div>
+                </Card>
+              )}
+
+              {/* Show progress while validating */}
+              {validationInProgress && (
+                <ValidationProgress stats={validationStats} progress={validationProgress} />
+              )}
+
+              {/* Show results when complete */}
+              {!validationInProgress && validationStats?.type === 'complete' && (
+                <div className="space-y-4">
+                  <ValidationResults stats={validationStats} onDownload={handleValidationDownload} />
+                  <Button
+                    onClick={() => {
+                      setValidationStats(null);
+                      setValidationProgress(null);
+                      setValidationFile(null);
+                      setSelectedValidationFile(null);
+                    }}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    Validate Another File
+                  </Button>
                 </div>
-              </Card>
+              )}
             </TabsContent>
 
             {/* MERGE TAB */}

@@ -27,8 +27,8 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
 
-# Install postgresql-client for migrations
-RUN apk add --no-cache postgresql-client netcat-openbsd
+# Install postgresql-client for migrations and ffmpeg for IPTV validation
+RUN apk add --no-cache postgresql-client netcat-openbsd ffmpeg
 
 # Non-root user
 RUN addgroup -g 1001 -S nextjs && adduser -S nextjs -u 1001
