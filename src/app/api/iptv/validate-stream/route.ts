@@ -45,8 +45,6 @@ export async function POST(request: NextRequest) {
       return new Response('Invalid channel file format', { status: 400 });
     }
 
-    const totalChannels = channelData.channels.length;
-
     // Create a ReadableStream for Server-Sent Events
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -58,69 +56,83 @@ export async function POST(request: NextRequest) {
         try {
           const startTime = Date.now();
 
-          // Configure iptv-checker
+          // Filter channels with valid URLs
+          const validUrlChannels = channelData.channels
+            .filter((ch: any) => {
+              const url = ch.streamURL || ch.url || ch.stream;
+              return url && typeof url === 'string' && url.trim().length > 0;
+            });
+
+          // Track validation progress in real-time
+          let processedCount = 0;
+          const batchSize = 50;
+          const validChannels: any[] = [];
+          const invalidChannels: any[] = [];
+
+          // Configure iptv-checker with real-time progress callback
           const checker = new Checker({
             timeout: timeout * 1000,
             parallel,
             retry,
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            afterEach: (item: any) => {
+              processedCount++;
+
+              // Track valid/invalid
+              const originalChannel = channelData.channels.find(
+                (ch: any) => (ch.streamURL || ch.url || ch.stream) === item.url
+              );
+
+              if (item.status.ok && originalChannel) {
+                validChannels.push(originalChannel);
+              } else if (originalChannel) {
+                invalidChannels.push({
+                  ...originalChannel,
+                  error: item.status.message || item.status.code || 'Failed validation'
+                });
+              }
+
+              // Send progress update every batch or every 5%
+              if (processedCount % batchSize === 0 || processedCount % Math.ceil(validUrlChannels.length / 20) === 0) {
+                const progress = (processedCount / validUrlChannels.length) * 100;
+                const elapsed = (Date.now() - startTime) / 1000;
+                const rate = processedCount / elapsed;
+                const remaining = rate > 0 ? Math.ceil((validUrlChannels.length - processedCount) / rate) : 0;
+
+                send({
+                  type: 'progress',
+                  processed: processedCount,
+                  total: validUrlChannels.length,
+                  valid: validChannels.length,
+                  invalid: invalidChannels.length,
+                  progress: Math.round(progress * 10) / 10,
+                  elapsed: Math.round(elapsed),
+                  remaining,
+                  rate: Math.round(rate * 10) / 10,
+                });
+              }
+            }
           });
 
-          // Prepare channels for validation - iptv-checker expects array of URL strings
-          const channelUrls = channelData.channels
-            .map((ch: any) => ch.streamURL || ch.url || ch.stream)
-            .filter((url: any) => url && typeof url === 'string' && url.trim().length > 0);
+          // Convert JSON channels to M3U format for iptv-checker
+          const m3uContent = '#EXTM3U\n' + validUrlChannels
+            .map((ch: any) => {
+              const name = ch.name || ch.channel || 'Unknown';
+              const url = ch.streamURL || ch.url || ch.stream;
+              return `#EXTINF:-1,${name}\n${url}`;
+            })
+            .join('\n');
 
           // Send initial status
           send({
             type: 'start',
-            totalChannels: channelUrls.length,
+            totalChannels: validUrlChannels.length,
             settings: { timeout, parallel, retry },
-            estimatedTime: Math.ceil((channelUrls.length * timeout) / parallel),
+            estimatedTime: Math.ceil((validUrlChannels.length * timeout) / parallel),
           });
 
-          // Validate all channels
-          const validChannels: any[] = [];
-          const invalidChannels: any[] = [];
-          let processedCount = 0;
-          const batchSize = 50;
-
-          for await (const result of checker.checkPlaylist(channelUrls)) {
-            processedCount++;
-
-            const originalChannel = channelData.channels.find(
-              (ch: any) => (ch.streamURL || ch.url || ch.stream) === result.url
-            );
-
-            if (result.status.ok && originalChannel) {
-              validChannels.push(originalChannel);
-            } else if (originalChannel) {
-              invalidChannels.push({
-                ...originalChannel,
-                error: result.status.reason || 'Failed validation'
-              });
-            }
-
-            // Send progress update every batch or every 5%
-            if (processedCount % batchSize === 0 || processedCount % Math.ceil(channelUrls.length / 20) === 0) {
-              const progress = (processedCount / channelUrls.length) * 100;
-              const elapsed = (Date.now() - startTime) / 1000;
-              const rate = processedCount / elapsed;
-              const remaining = rate > 0 ? Math.ceil((channelUrls.length - processedCount) / rate) : 0;
-
-              send({
-                type: 'progress',
-                processed: processedCount,
-                total: channelUrls.length,
-                valid: validChannels.length,
-                invalid: invalidChannels.length,
-                progress: Math.round(progress * 10) / 10,
-                elapsed: Math.round(elapsed),
-                remaining,
-                rate: Math.round(rate * 10) / 10,
-              });
-            }
-          }
+          // Validate all channels using M3U playlist
+          await checker.checkPlaylist(m3uContent);
 
           const duration = Math.floor((Date.now() - startTime) / 1000);
 
@@ -137,7 +149,7 @@ export async function POST(request: NextRequest) {
               original_file: sourceFilename,
               total_channels: validChannels.length,
               validation: {
-                total: channelUrls.length,
+                total: validUrlChannels.length,
                 valid: validChannels.length,
                 invalid: invalidChannels.length,
                 duration_seconds: duration
@@ -152,14 +164,14 @@ export async function POST(request: NextRequest) {
           };
 
           // Save to output directory
-          const filename = `channels-validated-${Date.now()}.json`;
-          const outputPath = join(process.cwd(), 'public', 'iptv-output', filename);
+          const outputFilename = `channels-validated-${Date.now()}.json`;
+          const outputPath = join(process.cwd(), 'public', 'iptv-output', outputFilename);
           await writeFile(outputPath, JSON.stringify(outputData, null, 2));
 
           // Send completion
           send({
             type: 'complete',
-            filename,
+            filename: outputFilename,
             totalChannels: validChannels.length,
             valid: validChannels.length,
             invalid: invalidChannels.length,
