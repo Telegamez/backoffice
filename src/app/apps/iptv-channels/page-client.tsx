@@ -131,6 +131,21 @@ export default function IPTVChannelsClient() {
 
       const result = await response.json();
 
+      // If validation is needed, switch to validation tab and start validation
+      if (result.needsValidation) {
+        setActiveTab('validate');
+        setValidationMode('existing');
+        setSelectedValidationFile(result.filename);
+
+        // Start validation automatically
+        setTimeout(() => {
+          handleValidateFile();
+        }, 500);
+
+        setCurrentJob(null);
+        return;
+      }
+
       const completedJob: GenerationJob = {
         id: Date.now().toString(),
         status: 'completed',
@@ -184,6 +199,21 @@ export default function IPTVChannelsClient() {
       if (!response.ok) throw new Error('Generation failed');
 
       const result = await response.json();
+
+      // If validation is needed, switch to validation tab and start validation
+      if (result.needsValidation) {
+        setActiveTab('validate');
+        setValidationMode('existing');
+        setSelectedValidationFile(result.filename);
+
+        // Start validation automatically
+        setTimeout(() => {
+          handleValidateFile();
+        }, 500);
+
+        setCurrentJob(null);
+        return;
+      }
 
       const completedJob: GenerationJob = {
         id: Date.now().toString(),

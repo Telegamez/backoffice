@@ -264,9 +264,6 @@ export async function generateMasterChannels(options: GenerationOptions) {
 
   console.log(`[IPTV] Filtered: ${filteredCount}, No stream: ${noStreamCount}, Matched: ${matchedChannels.length}`);
 
-  // Note: Validation skipped in web version for performance
-  // Users can download and validate separately if needed
-
   const duration = Math.floor((Date.now() - startTime) / 1000);
 
   return {
@@ -288,14 +285,10 @@ export async function generateMasterChannels(options: GenerationOptions) {
         no_stream_or_wrong_format: noStreamCount,
         matched_unique: matchedChannels.length
       },
-      validation: config.skipValidation ? 'skipped' : {
-        total: matchedChannels.length,
-        valid: matchedChannels.length,
-        invalid: 0,
-        duration_seconds: 0
-      },
+      validation: config.skipValidation ? 'skipped' : 'pending',
       duration_seconds: duration
     },
-    channels: matchedChannels
+    channels: matchedChannels,
+    needsValidation: !config.skipValidation
   };
 }
