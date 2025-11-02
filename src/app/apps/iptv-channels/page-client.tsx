@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
@@ -70,6 +70,7 @@ export default function IPTVChannelsClient() {
   const [validationInProgress, setValidationInProgress] = useState(false);
   const [validationMode, setValidationMode] = useState<'upload' | 'existing'>('existing');
   const [selectedValidationFile, setSelectedValidationFile] = useState<string | null>(null);
+  const [pendingValidationFile, setPendingValidationFile] = useState<string | null>(null);
 
   // Merge
   const [mergeFiles, setMergeFiles] = useState<string[]>([]);
@@ -103,6 +104,93 @@ export default function IPTVChannelsClient() {
     }
   };
 
+  // Define startValidation first so it can be used by generate functions
+  const startValidation = useCallback(async (filename: string) => {
+    setValidationInProgress(true);
+    setValidationProgress(0);
+    setValidationStats(null);
+
+    const formData = new FormData();
+    formData.append('filename', filename);
+    formData.append('timeout', timeout.toString());
+    formData.append('parallel', parallel.toString());
+    formData.append('retry', retry.toString());
+
+    try {
+      const response = await fetch('/api/iptv/validate-stream', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) throw new Error('Validation failed');
+      if (!response.body) throw new Error('No response body');
+
+      // Read SSE stream
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.type === 'start') {
+                setValidationStats(data);
+              } else if (data.type === 'progress') {
+                setValidationStats(data);
+                setValidationProgress(data.progress);
+              } else if (data.type === 'complete') {
+                setValidationStats(data);
+                setValidationProgress(100);
+                setValidationInProgress(false);
+
+                // Add to jobs
+                const completedJob: GenerationJob = {
+                  id: Date.now().toString(),
+                  status: 'completed',
+                  result: {
+                    totalChannels: data.valid + data.invalid,
+                    validChannels: data.valid,
+                    invalidChannels: data.invalid,
+                    outputFile: data.filename
+                  }
+                };
+                setJobs(prev => [completedJob, ...prev]);
+                loadChannelFiles();
+              }
+            } catch (e) {
+              console.error('Failed to parse SSE message:', e);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      setValidationProgress(null);
+      setValidationInProgress(false);
+      setValidationStats(null);
+      alert(error instanceof Error ? error.message : 'Validation failed');
+    }
+  }, [timeout, parallel, retry]);
+
+  // Auto-start validation when pending
+  useEffect(() => {
+    if (pendingValidationFile && activeTab === 'validate') {
+      const file = pendingValidationFile;
+      setPendingValidationFile(null);
+      startValidation(file);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingValidationFile, activeTab]);
+
   const handleGenerateProfile = async (profileId: string) => {
     setCurrentJob({
       id: Date.now().toString(),
@@ -131,18 +219,17 @@ export default function IPTVChannelsClient() {
 
       const result = await response.json();
 
+      // Refresh file list first
+      await loadChannelFiles();
+
       // If validation is needed, switch to validation tab and start validation
       if (result.needsValidation) {
         setActiveTab('validate');
         setValidationMode('existing');
         setSelectedValidationFile(result.filename);
-
-        // Start validation automatically
-        setTimeout(() => {
-          handleValidateFile();
-        }, 500);
-
         setCurrentJob(null);
+        setPendingValidationFile(result.filename);
+
         return;
       }
 
@@ -159,7 +246,6 @@ export default function IPTVChannelsClient() {
 
       setCurrentJob(completedJob);
       setJobs(prev => [completedJob, ...prev]);
-      loadChannelFiles(); // Refresh file list
     } catch (error) {
       setCurrentJob({
         id: Date.now().toString(),
@@ -200,18 +286,17 @@ export default function IPTVChannelsClient() {
 
       const result = await response.json();
 
+      // Refresh file list first
+      await loadChannelFiles();
+
       // If validation is needed, switch to validation tab and start validation
       if (result.needsValidation) {
         setActiveTab('validate');
         setValidationMode('existing');
         setSelectedValidationFile(result.filename);
-
-        // Start validation automatically
-        setTimeout(() => {
-          handleValidateFile();
-        }, 500);
-
         setCurrentJob(null);
+        setPendingValidationFile(result.filename);
+
         return;
       }
 
@@ -228,7 +313,6 @@ export default function IPTVChannelsClient() {
 
       setCurrentJob(completedJob);
       setJobs(prev => [completedJob, ...prev]);
-      loadChannelFiles();
     } catch (error) {
       setCurrentJob({
         id: Date.now().toString(),

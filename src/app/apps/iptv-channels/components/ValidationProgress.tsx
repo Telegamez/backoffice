@@ -84,7 +84,7 @@ export default function ValidationProgress({ stats, progress }: ValidationProgre
                 {stats.valid}
               </div>
               <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                {((stats.valid / stats.processed) * 100).toFixed(1)}% success
+                {stats.processed > 0 ? ((stats.valid / stats.processed) * 100).toFixed(1) : '0.0'}% success
               </div>
             </div>
 
@@ -100,7 +100,7 @@ export default function ValidationProgress({ stats, progress }: ValidationProgre
                 {stats.invalid}
               </div>
               <div className="text-xs text-red-600 dark:text-red-400 mt-1">
-                {((stats.invalid / stats.processed) * 100).toFixed(1)}% failed
+                {stats.processed > 0 ? ((stats.invalid / stats.processed) * 100).toFixed(1) : '0.0'}% failed
               </div>
             </div>
 
@@ -116,7 +116,7 @@ export default function ValidationProgress({ stats, progress }: ValidationProgre
                 {formatTime(stats.elapsed)}
               </div>
               <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                {stats.rate.toFixed(1)} ch/s
+                {stats.rate ? stats.rate.toFixed(1) : '0.0'} ch/s
               </div>
             </div>
 

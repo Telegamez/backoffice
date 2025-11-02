@@ -22,7 +22,8 @@ export default function ValidationResults({ stats, onDownload }: ValidationResul
     return `${mins}m ${secs}s`;
   };
 
-  const successRate = ((stats.valid / (stats.valid + stats.invalid)) * 100).toFixed(1);
+  const total = stats.valid + stats.invalid;
+  const successRate = total > 0 ? ((stats.valid / total) * 100).toFixed(1) : '0.0';
 
   return (
     <Card className="p-6 border-2 border-green-500">
